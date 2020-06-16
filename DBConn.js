@@ -1,10 +1,10 @@
 const Pool = require('pg').Pool
 const pool = new Pool({
-  user: 'chatbot',
-  host: 'localhost',
-  database: 'fbhook',
-  password: 'asdasd123',
-  port: 5432,
+  user: DB_USER,
+  host: DB_HOST,
+  database: DB_NAME,
+  password: DB_PASSWORD,
+  port: DB_PORT,
 })
 
 function checkUser(fbid,name){
