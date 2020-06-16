@@ -109,6 +109,7 @@ function handleMessage(sender_psid, received_message) {
   if (received_message.text) {
     console.log(`Received message: "${received_message.text}"`);
     
+    response = processMessage(received_message);
     // Default response (for debugging)
     // Create the payload for a basic text message
     // response = {
@@ -262,7 +263,7 @@ function callSendAPI(sender_psid, response) {
     },
     (err, res, body) => {
       if (!err) {
-        console.log("message sent!");
+        console.log("Message sent!");
       } else {
         console.error("Unable to send message:" + err);
       }
