@@ -1,10 +1,10 @@
 const Pool = require('pg').Pool
 const pool = new Pool({
-  user: DB_USER,
-  host: DB_HOST,
-  database: DB_NAME,
-  password: DB_PASSWORD,
-  port: DB_PORT,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
 })
 
 function checkUser(fbid,name){
@@ -28,10 +28,61 @@ function createUser(fbid,name){
     console.log(fbid + " " + name)
     pool.query('INSERT INTO users(fbid,name) VALUES ($1,$2)',[fbid,name],(error,results) => {
         if (error){
-            throw error
+            throw error;
         }
         console.log(results.insertId)
     })
 }
 
-export { checkUser, createUser };
+function getUserID(fbid){
+    var userID = "";
+    
+    pool.query('SELECT * FROM users where fbid=$1',[fbid],(error, results) =>{
+        if (error){
+            throw error;
+        }
+        console.log(results)
+    })
+    
+    return userID;
+}
+
+//Check if user has an active shopping cart
+function checkCart(userID,products,quantity){
+    pool.query('SELECT * FROM cart where uid=$1',[userID],(error, results) =>{
+    if (error){
+        throw error;
+    }
+    rowCount = results.rowCount;
+    console.log(results)
+    if (rowCount == 0){
+        createCart(userID,products,quantity);
+    }
+    else{
+        products += results.something;
+        quantity += results.something;
+        updateCart(userID,products,quantity);
+    }
+}
+
+// Initial creation of a fresh cart
+function createCart(userID,products,quantity){
+    pool.query('INSERT INTO cart(uid,products,quantity) VALUES ($1,$2,$3)',[userID,products,quantity],(error,reuslts)=>{
+        if (error){
+            throw error;
+        }
+        console.log(results.insertId);
+    })
+}
+
+// Update cart if user has an active cart
+function updateCart(userID,products,quantity){
+    pool.query('UPDATE cart SET products=$1, quantity=$2 WHERE uid=$3',[products,quantity,userID],(error,results)=> {
+        if (error){
+            throw error;
+        }
+        console.log(results.insertId);
+    })
+}
+
+export { checkUser, createUser, getUserID, checkCart };

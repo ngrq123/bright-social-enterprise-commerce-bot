@@ -9,11 +9,14 @@ const express = require("express"),
   bodyParser = require("body-parser"),
   app = express().use(bodyParser.json()); // creates express http server
 const request = require("request");
+const dotenv = require('dotenv');
+dotenv.config();
 
-import { checkUser, createUser } from './DBConn';
+import { checkUser, createUser, getUserID, checkCart } from './DBConn';
+import { getName, getProductDetails } from './fbhelper';
 
 // Get page access token
-const PAGE_ACCESS_TOKEN = "EAAD8zMC5gSsBAExn2508DekGHRUb5vzQ2RjCTZCvh2pXVlkRJHZBx9ouyPUSZCqctZAxZCKSbf6KrXETcHlVyRbhchNBv5LZAtxBgZAPASdtBg1nAfRMw46xx7gYc8ZB8vQ6vg9OIesLXuXZAlrfFKQxATUGZCvIEsO39zApmZCb0dWZBwZDZD";
+const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
 // Sets server port and logs message on success
 app.listen(3000, () => console.log("webhook is listening"));
@@ -57,7 +60,7 @@ app.post("/webhook", (req, res) => {
 
 // Adds support for GET requests to our webhook
 app.get("/webhook", (req, res) => {
-  let VERIFY_TOKEN = "asdasd123";
+  let VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
   // Parse the query params
   let mode = req.query["hub.mode"];
@@ -77,29 +80,6 @@ app.get("/webhook", (req, res) => {
     }
   }
 });
-
-//Gets users name from facebook graph api
-function getName(sender_psid,callback){
-    var name = "Empty";
-    request({
-        url:"https://graph.facebook.com/v3.3/" + sender_psid,
-        qs:{
-            access_token: PAGE_ACCESS_TOKEN,
-            fields: "first_name",
-        },
-        method:"GET"
-    }, function(error,response,body){
-        if (error){
-            console.log(error)
-        }else{
-            var bodyObj = JSON.parse(body);
-            name = bodyObj.first_name;
-            console.log("Name: " + name);
-            return callback(name)
-        }
-    });
-    return name;
-}
 
 // Handles messages events
 function handleMessage(sender_psid, received_message) {
