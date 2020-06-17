@@ -101,6 +101,10 @@ app.post("/webhook", (req, res) => {
 //     return name;
 // }
 
+let defaultResponse = generateResponseFromMessage(
+  "We could not understand your message. Kindly rephrase your message and send us again."
+);
+
 // Handles messages events
 function handleMessage(sender_psid, received_message) {
   let response;
@@ -116,283 +120,13 @@ function handleMessage(sender_psid, received_message) {
     //   text: `You sent the message: "${received_message.text}".`
     // };
   } else {
-    response = defaultResponse();
+    response = defaultResponse;
     //     // Gets the URL of the message attachment
     //     let attachment_url = received_message.attachments[0].payload.url;
   }
 
   // Sends the response message
   callSendAPI(sender_psid, response);
-}
-
-function processMessage(sender_psid, message) {
-  // NLP: https://developers.facebook.com/docs/messenger-platform/built-in-nlp
-  let entities = message.nlp["entities"];
-
-  // Object.keys(entities).forEach(key => {
-  //   console.log(key);
-  //   console.log(entities[key]);
-  // });
-
-  // Check greeting
-  let is_greeting =
-    entities["greetings"] != null &&
-    entities["greetings"][0]["confidence"] > 0.8; // Greeting threshold set to 0.8
-
-  // Retrieve first intent object
-  let intent = entities["intent"][0];
-
-  if (intent["confidence"] > 0.5) {
-    // Process intent
-    let intent_parts = intent["value"].split("_");
-    let intent_category = intent_parts[0];
-    let response = null;
-
-    if (intent_category === "recommendation") {
-      // Handle recommendation
-      // response = generateResponseFromMessage(
-      //   "Message received is a recommendation message."
-      // );
-
-      let product_types = [];
-      if (entities["product_type"]) {
-        console.log("Processing product types");
-        product_types = entities["product_type"]
-          .filter(obj => obj["confidence"] > 0.5)
-          .map(obj => obj["value"]);
-      }
-
-      response = generateRecommendationsResponse(product_types);
-    }
-
-    if (intent_category === "enquiry") {
-      // Handle enquiry
-      // response = generateResponseFromMessage(
-      //   "Message received is an enquiry message."
-      // );
-
-      let intent_subcategory = intent_parts[1];
-
-      if (intent_subcategory === "general") {
-        if (entities["profit"]) {
-          response = generateResponseFromMessage(
-            "All net revenue earned from the sale of our products and services go towards paying a monthly allowance for our clients' work, as well as their lunch expenses while undergoing training."
-          );
-        } else if (entities["manufacturer"]) {
-          response = generateResponseFromMessage(
-            "We support adults with intellectual disabilities. We started a range of social enterprise projects to provide alternative work engagement for our adult trainees."
-          );
-        } else if (entities["products"]) {
-          response = generateResponseFromMessage("We sell craft and baker goods.");
-        }
-      } else if (intent_subcategory === "delivery") {
-        // Check for estimated arrival entity
-        if (entities["estimated_arrival"]) {
-          response = generateResponseFromMessage(
-            "The average delivery time takes 5-7 working days. Your ordered was sent on 17 February. It is estimated to arrive on {sent date + 7 working day}."
-          );
-        } else if (entities["cost"]) {
-          response = generateResponseFromMessage("It is a flat fee of $2 for every order.");
-        } else if (entities["status"]) {
-          // TODO: Order status
-        } else {
-          response = generateResponseFromMessage(
-            "We deliver islandwide. The average delivery time takes 5-7 working days."
-          );
-        }
-      }
-    }
-
-    if (intent_category === "cart") {
-      // Handle shopping cart
-      response = generateResponseFromMessage(
-        "Message received is a cart message."
-      );
-
-      let intent_subcategory = intent_parts[1];
-      if (intent_subcategory === "add" && entities["product"]) {
-        let product_name = entities["product"][0]["value"];
-        let quantity = entities["number"] ? entities["number"][0]["value"] : 1;
-        response = generateAddCartResponse(sender_psid, product_name, quantity);
-      } else if (intent_subcategory === "view") {
-        response = generateViewCartResponse(sender_psid);
-      }
-    }
-
-    if (response === null) {
-      return defaultResponse();
-    }
-
-    return response;
-  } else if (is_greeting) {
-    // Message has no intent, just greeting
-    return generateResponseFromMessage(
-      "Hi there! Welcome to MINDS. How can I help you?"
-    );
-  }
-
-  Object.keys(entities).forEach(key => {
-    console.log(key);
-    console.log(entities[key]);
-  });
-
-  return defaultResponse();
-}
-
-function defaultResponse() {
-  return generateResponseFromMessage(
-    "We could not understand your message. Kindly rephrase your message and send us again."
-  );
-}
-
-function generateResponseFromMessage(message) {
-  return {
-    text: message
-  };
-}
-
-function generateRecommendationsTemplateElements(products) {
-  let template_elements = products.map(product => {
-    return {
-      title: product["name"],
-      subtitle: `$${product["price"]}`,
-      image_url: product["url"],
-      buttons: [
-        {
-          type: "postback",
-          title: "Learn More",
-          payload: `enquiry_product ${product["name"]}`
-        },
-        {
-          type: "postback",
-          title: "Add to Cart",
-          payload: `cart_add ${product["name"]}`
-        }
-      ]
-    };
-  });
-  return template_elements;
-}
-
-function generateRecommendationsResponse(product_types) {
-  let response = {
-    attachment: {
-      type: "template",
-      payload: {
-        template_type: "generic",
-        elements: generateRecommendationsTemplateElements([
-          {
-            id: 1,
-            name: "Dark Chocolate Oatmeal Cookies",
-            price: 3.5,
-            url:
-              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            attribute: {
-              allegens: ['eggs', 'nut'],
-              colour: null,
-              
-            }
-          },
-          {
-            id: 2,
-            name: "Cranberry Sweetheart Cookies (Eggless)",
-            price: 3.5,
-            url:
-              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg"
-          },
-          {
-            id: 3,
-            name: "Earl Grey Sunflower Seeds Cookies",
-            price: 3.5,
-            url:
-              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg"
-          }
-        ])
-      }
-    }
-  };
-  return response;
-}
-
-function generateAddCartResponse(sender_psid, product_name, quantity) {
-  // TODO: Add product to cart in db
-
-  return {
-    text: `Added ${quantity} ${product_name} to cart.`,
-    quick_replies: [
-      {
-        "content_type": "text",
-        "title": "View Cart",
-        "payload": `cart_view`
-      },
-      {
-        "content_type": "text",
-        "title": "Checkout",
-        "payload": `checkout`
-      }
-    ]
-  };
-}
-
-function generateCartTemplateElements(products) {
-  let template_elements = products.map(product => {
-    return {
-      title: product["name"],
-      subtitle: `Qty: ${product["quantity"]} ($${product["price"]} each)`,
-      image_url: product["url"],
-      buttons: [
-        {
-          type: "postback",
-          title: "Add 1",
-          payload: `cart_add ${product["name"]}`
-        },
-        {
-          type: "postback",
-          title: "Remove All",
-          payload: `cart_remove ${product["name"]}`
-        }
-      ]
-    };
-  });
-  return template_elements;
-}
-
-function generateViewCartResponse(product_types) {
-  let response = {
-    attachment: {
-      type: "template",
-      payload: {
-        template_type: "generic",
-        elements: generateCartTemplateElements([
-          {
-            id: 1,
-            name: "Dark Chocolate Oatmeal Cookies",
-            price: 3.5,
-            url:
-              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            quantity: 1
-          },
-          {
-            id: 2,
-            name: "Cranberry Sweetheart Cookies (Eggless)",
-            price: 3.5,
-            url:
-              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            quantity: 2
-          },
-          {
-            id: 3,
-            name: "Earl Grey Sunflower Seeds Cookies",
-            price: 3.5,
-            url:
-              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            quantity: 1
-          }
-        ])
-      }
-    }
-  };
-  return response;
 }
 
 // Handles messaging_postbacks events
@@ -416,9 +150,45 @@ function handlePostback(sender_psid, received_postback) {
   } else if (postback_intent === "cart_view") {
     response = generateViewCartResponse(sender_psid);
   } else if (postback_intent === "enquiry_product") {
+    response = generateResponseFromMessage(
+      `What would you like to know about our ${postback_content}?`
+    );
+  } else if (postback_intent === "checkout") {
     response = {
-      text: `What would you like to know about our ${postback_content}?`
+      attachment: {
+        type: "template",
+        payload: {
+          template_type: "button",
+          text: "Click on the button below to pay.",
+          buttons: [
+            {
+              type: "postback",
+              text: "Pay",
+              payload: "paid"
+            }
+          ]
+        }
+      }
     };
+  } else if (postback_intent === "paid") {
+    response = {
+      attachment: {
+        type: "template",
+        payload: {
+          template_type: "button",
+          text: "Your order (order no.) is confirmed.",
+          buttons: [
+            {
+              type: "postback",
+              text: "View Receipt",
+              payload: "receipt_view"
+            }
+          ]
+        }
+      }
+    };
+  } else if (postback_intent === "receipt_view") {
+    response = generateReceiptResponse(sender_psid);
   }
 
   if (response == null) {
@@ -431,6 +201,9 @@ function handlePostback(sender_psid, received_postback) {
 
 // Sends response messages via the Send API
 function callSendAPI(sender_psid, response) {
+  // Uncomment to log response object
+  console.log(response);
+
   // Construct the message body
   let request_body = {
     recipient: {
@@ -455,4 +228,366 @@ function callSendAPI(sender_psid, response) {
       }
     }
   );
+}
+
+// Process text message and returns response object to handleMessage()
+function processMessage(sender_psid, message) {
+  // NLP: https://developers.facebook.com/docs/messenger-platform/built-in-nlp
+  let entities = message.nlp["entities"];
+
+  // Uncomment to view all entities and their xalues
+  // Object.keys(entities).forEach(key => {
+  //   console.log("Entity: " + key);
+  //   console.log(entities[key]);
+  // });
+
+  // Check greeting
+  let is_greeting =
+    entities["greetings"] != null &&
+    entities["greetings"][0]["confidence"] > 0.8; // Greeting threshold set to 0.8 (stricter)
+
+  // Retrieve first intent object
+  let intent = entities["intent"][0];
+
+  if (intent["confidence"] > 0.5) {
+    // Process intent
+    let intent_parts = intent["value"].split("_");
+    let intent_category = intent_parts[0];
+    let intent_subcategory = intent_parts.length > 1 ? intent_parts[1] : null;
+    let response = null;
+
+    switch (intent_category) {
+      case "recommendation":
+        // Handle recommendation
+        // response = generateResponseFromMessage(
+        //   "Message received is a recommendation message."
+        // );
+
+        let product_types = [];
+        if (entities["product_type"]) {
+          console.log("Processing product types");
+          product_types = entities["product_type"]
+            .filter(obj => obj["confidence"] > 0.5)
+            .map(obj => obj["value"]);
+        }
+
+        response = generateRecommendationsResponse(product_types);
+        break;
+
+      case "enquiry":
+        // Handle enquiry
+        // response = generateResponseFromMessage(
+        //   "Message received is an enquiry message."
+        // );
+
+        if (intent_subcategory === "product") {
+          // Retrieve product and attribute from entities object
+          if (entities["product"] && entities["attribute"]) {
+            let product = entities["product"][0];
+            let attribute = entities["attribute"][0];
+            // TODO: Handle product enquiry
+            response = generateProductEnquiryResponse(product, attribute);
+          } else {
+            response = defaultResponse;
+          }
+        } else if (intent_subcategory === "general") {
+          let messages = {
+            profit:
+              "All net revenue earned from the sale of our products and services go towards paying a monthly allowance for our clients' work, as well as their lunch expenses while undergoing training.",
+            manufacturer:
+              "We support adults with intellectual disabilities. We started a range of social enterprise projects to provide alternative work engagement for our adult trainees.",
+            products: "We sell craft and baker goods."
+          };
+          // Loop through message keys (entity) and find if entity is in entities
+          Object.keys(messages).forEach(entity => {
+            if (response == null && entities[entity]) {
+              response = generateResponseFromMessage(messages[entity]);
+            }
+          });
+        } else if (intent_subcategory === "delivery") {
+          if (entities["status"]) {
+            // TODO: Order status
+            response = generateResponseFromMessage(
+              "Your latest order is <status>."
+            );
+          } else if (entities["estimated_arrival"]) {
+            // TODO: Order estimated arrival
+            response = generateResponseFromMessage(
+              "The average delivery time takes 5-7 working days. Your ordered was sent on <date>. It is estimated to arrive on <date + 7 working days>."
+            );
+          } else if (entities["cost"]) {
+            response = generateResponseFromMessage(
+              "It is a flat fee of $2 for every order."
+            );
+          } else {
+            response = generateResponseFromMessage(
+              "We deliver islandwide. The average delivery time takes 5-7 working days."
+            );
+          }
+        }
+        break;
+
+      case "cart":
+        // Handle shopping cart
+        // response = generateResponseFromMessage(
+        //   "Message received is a cart message."
+        // );
+
+        if (intent_subcategory === "add" && entities["product"]) {
+          let product_name = entities["product"][0]["value"];
+          let quantity = entities["number"]
+            ? entities["number"][0]["value"]
+            : 1;
+          response = generateAddCartResponse(
+            sender_psid,
+            product_name,
+            quantity
+          );
+        } else if (intent_subcategory === "view") {
+          response = generateViewCartResponse(sender_psid);
+        }
+        break;
+
+      default:
+        response = defaultResponse;
+    }
+
+    response = response == null ? defaultResponse : response;
+    return response;
+  } else if (is_greeting) {
+    // Message has no intent, just greeting
+    // TODO: Add quick replies of chatbot functionalities (recommendations, check order status, etc.)
+    return generateResponseFromMessage(
+      "Hi there! Welcome to MINDS. How can I help you?"
+    );
+  }
+
+  // No intent nor greeting
+  return defaultResponse;
+}
+
+// Wrapper method to convert text message string to response object
+function generateResponseFromMessage(message) {
+  return {
+    text: message
+  };
+}
+
+// Response on generic template carousel for recommendations
+function generateRecommendationsResponse(product_types) {
+  // TODO: Retrieve products to recommend based on list of product types. If product types is an empty array, recommend products of various types
+  let products = [
+    {
+      id: 1,
+      name: "Dark Chocolate Oatmeal Cookies",
+      price: 3.5,
+      url:
+        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+      attribute: {
+        allegens: ["eggs", "nut"],
+        colour: null
+      }
+    },
+    {
+      id: 2,
+      name: "Cranberry Sweetheart Cookies (Eggless)",
+      price: 3.5,
+      url:
+        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg"
+    },
+    {
+      id: 3,
+      name: "Earl Grey Sunflower Seeds Cookies",
+      price: 3.5,
+      url:
+        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg"
+    }
+  ];
+
+  let response = {
+    attachment: {
+      type: "template",
+      payload: {
+        template_type: "generic",
+        elements: products.map(product => {
+          return {
+            title: product["name"],
+            subtitle: `$${product["price"]}`,
+            image_url: product["url"],
+            buttons: [
+              {
+                type: "postback",
+                title: "Learn More",
+                payload: `enquiry_product ${product["name"]}`
+              },
+              {
+                type: "postback",
+                title: "Add to Cart",
+                payload: `cart_add ${product["name"]}`
+              }
+            ]
+          };
+        })
+      }
+    }
+  };
+  return response;
+}
+
+// Response on confirmation of product added to cart and quick replies
+function generateAddCartResponse(sender_psid, product_name, quantity) {
+  // TODO: Add product to cart in db
+
+  return {
+    text: `Added ${quantity} ${product_name} to cart.`,
+    quick_replies: [
+      {
+        content_type: "text",
+        title: "View Cart",
+        payload: `cart_view`
+      },
+      {
+        content_type: "text",
+        title: "Checkout",
+        payload: `checkout`
+      }
+    ]
+  };
+}
+
+// Response on generic template carousel for cart
+function generateViewCartResponse(sender_psid) {
+  // TODO: Get cart from db
+  let products = [
+    {
+      id: 1,
+      name: "Dark Chocolate Oatmeal Cookies",
+      price: 3.5,
+      url:
+        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+      quantity: 1
+    },
+    {
+      id: 2,
+      name: "Cranberry Sweetheart Cookies (Eggless)",
+      price: 3.5,
+      url:
+        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+      quantity: 2
+    },
+    {
+      id: 3,
+      name: "Earl Grey Sunflower Seeds Cookies",
+      price: 3.5,
+      url:
+        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+      quantity: 1
+    }
+  ];
+  let response = {
+    attachment: {
+      type: "template",
+      payload: {
+        template_type: "generic",
+        elements: products.map(product => {
+          return {
+            title: product["name"],
+            subtitle: `Qty: ${product["quantity"]} ($${product["price"]} each)`,
+            image_url: product["url"],
+            buttons: [
+              {
+                type: "postback",
+                title: "Add 1",
+                payload: `cart_add ${product["name"]}`
+              },
+              {
+                type: "postback",
+                title: "Remove All",
+                payload: `cart_remove ${product["name"]}`
+              }
+            ]
+          };
+        })
+      }
+    }
+  };
+  return response;
+}
+
+// Response on receipt template for latest confirmed order
+function generateReceiptResponse(sender_psid) {
+  // TODO: Get latest order from database
+  let products = [
+    {
+      id: 1,
+      name: "Dark Chocolate Oatmeal Cookies",
+      price: 3.5,
+      url:
+        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+      quantity: 1
+    },
+    {
+      id: 2,
+      name: "Cranberry Sweetheart Cookies (Eggless)",
+      price: 3.5,
+      url:
+        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+      quantity: 2
+    },
+    {
+      id: 3,
+      name: "Earl Grey Sunflower Seeds Cookies",
+      price: 3.5,
+      url:
+        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+      quantity: 1
+    }
+  ];
+
+  let response = {
+    attachment: {
+      type: "template",
+      payload: {
+        template_type: "receipt",
+        recipient_name: "<name>",
+        order_number: "<order_number>",
+        currency: "SGD",
+        payment_method: "PayPal",
+        // "order_url":"http://petersapparel.parseapp.com/order?order_id=123456",
+        // "timestamp":"1428444852",
+        // "address":{
+        //   "street_1":"1 Hacker Way",
+        //   "street_2":"",
+        //   "city":"Menlo Park",
+        //   "postal_code":"94025",
+        //   "state":"CA",
+        //   "country":"US"
+        // },
+        summary: {
+          subtotal: 75.0 //,
+          // "shipping_cost":4.95,
+          // "total_tax":6.19,
+          // "total_cost":56.14
+        },
+        elements: products.map(product => {
+          return {
+            title: `${product["name"]}`,
+            subtitle: "",
+            quantity: product["quantity"],
+            price: product["price"],
+            currency: "SGD",
+            image_url: product["url"]
+          };
+        })
+      }
+    }
+  };
+
+  return response;
+}
+
+// Response on prododuct enquiry
+function generateProductEnquiryResponse(product, attribute) {
+  // TODO: Get product from db, create message and generate response
+  return defaultResponse;
 }
