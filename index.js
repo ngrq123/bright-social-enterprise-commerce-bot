@@ -57,7 +57,7 @@ app.post("/webhook", (req, res) => {
       // Get the sender PSID
       let sender_psid = webhook_event.sender.id;
       // console.log("Sender PSID: " + sender_psid);
-      
+
       // Check if the event is a message or postback and
       // pass the event to the appropriate handler function
       if (webhook_event.message) {
@@ -104,12 +104,12 @@ app.post("/webhook", (req, res) => {
 // Handles messages events
 function handleMessage(sender_psid, received_message) {
   let response;
-  
+
   // Check if the message contains text
   if (received_message.text) {
     console.log(`Received message: "${received_message.text}"`);
-    
-    response = processMessage(received_message);
+
+    response = processMessage(sender_psid, received_message);
     // Default response (for debugging)
     // Create the payload for a basic text message
     // response = {
@@ -117,46 +117,22 @@ function handleMessage(sender_psid, received_message) {
     // };
   } else {
     response = defaultResponse();
-//     // Gets the URL of the message attachment
-//     let attachment_url = received_message.attachments[0].payload.url;
-    
-//     response = {
-//       attachment: {
-//         type: "template",
-//         payload: {
-//           template_type: "generic",
-//           elements: [
-//             {
-//               title: "Is this the right picture?",
-//               subtitle: "Tap a button to answer.",
-//               image_url: attachment_url,
-//               buttons: [
-//                 {
-//                   type: "postback",
-//                   title: "Yes!",
-//                   payload: "yes"
-//                 },
-//                 {
-//                   type: "postback",
-//                   title: "No!",
-//                   payload: "no"
-//                 }
-//               ]
-//             }
-//           ]
-//         }
-//       }
-//     };
-    
+    //     // Gets the URL of the message attachment
+    //     let attachment_url = received_message.attachments[0].payload.url;
   }
 
   // Sends the response message
   callSendAPI(sender_psid, response);
 }
 
-function processMessage(message) {
+function processMessage(sender_psid, message) {
   // NLP: https://developers.facebook.com/docs/messenger-platform/built-in-nlp
   let entities = message.nlp["entities"];
+
+  // Object.keys(entities).forEach(key => {
+  //   console.log(key);
+  //   console.log(entities[key]);
+  // });
 
   // Check greeting
   let is_greeting =
@@ -168,27 +144,79 @@ function processMessage(message) {
 
   if (intent["confidence"] > 0.5) {
     // Process intent
-    let intent_category = intent.split("_")[0];
+    let intent_parts = intent["value"].split("_");
+    let intent_category = intent_parts[0];
     let response = null;
 
     if (intent_category === "recommendation") {
       // Handle recommendation
+      // response = generateResponseFromMessage(
+      //   "Message received is a recommendation message."
+      // );
+
+      let product_types = [];
+      if (entities["product_type"]) {
+        console.log("Processing product types");
+        product_types = entities["product_type"]
+          .filter(obj => obj["confidence"] > 0.5)
+          .map(obj => obj["value"]);
+      }
+
+      response = generateRecommendationsResponse(product_types);
     }
 
     if (intent_category === "enquiry") {
       // Handle enquiry
+      // response = generateResponseFromMessage(
+      //   "Message received is an enquiry message."
+      // );
+
+      let intent_subcategory = intent_parts[1];
+
+      if (intent_subcategory === "general") {
+        if (entities["profit"]) {
+          response = generateResponseFromMessage(
+            "All net revenue earned from the sale of our products and services go towards paying a monthly allowance for our clients' work, as well as their lunch expenses while undergoing training."
+          );
+        } else if (entities["manufacturer"]) {
+          response = generateResponseFromMessage(
+            "We support adults with intellectual disabilities. We started a range of social enterprise projects to provide alternative work engagement for our adult trainees."
+          );
+        } else if (entities["products"]) {
+          response = generateResponseFromMessage("We sell craft and baker goods.");
+        }
+      } else if (intent_subcategory === "delivery") {
+        // Check for estimated arrival entity
+        if (entities["estimated_arrival"]) {
+          response = generateResponseFromMessage(
+            "The average delivery time takes 5-7 working days. Your ordered was sent on 17 February. It is estimated to arrive on {sent date + 7 working day}."
+          );
+        } else if (entities["cost"]) {
+          response = generateResponseFromMessage("It is a flat fee of $2 for every order.");
+        } else if (entities["status"]) {
+          // TODO: Order status
+        } else {
+          response = generateResponseFromMessage(
+            "We deliver islandwide. The average delivery time takes 5-7 working days."
+          );
+        }
+      }
     }
 
     if (intent_category === "cart") {
       // Handle shopping cart
-    }
+      response = generateResponseFromMessage(
+        "Message received is a cart message."
+      );
 
-    if (intent_category === "return") {
-      // Handle order returns
-    }
-
-    if (intent_category === "refund") {
-      // Handle order refund
+      let intent_subcategory = intent_parts[1];
+      if (intent_subcategory === "add" && entities["product"]) {
+        let product_name = entities["product"][0]["value"];
+        let quantity = entities["number"] ? entities["number"][0]["value"] : 1;
+        response = generateAddCartResponse(sender_psid, product_name, quantity);
+      } else if (intent_subcategory === "view") {
+        response = generateViewCartResponse(sender_psid);
+      }
     }
 
     if (response === null) {
@@ -223,22 +251,180 @@ function generateResponseFromMessage(message) {
   };
 }
 
+function generateRecommendationsTemplateElements(products) {
+  let template_elements = products.map(product => {
+    return {
+      title: product["name"],
+      subtitle: `$${product["price"]}`,
+      image_url: product["url"],
+      buttons: [
+        {
+          type: "postback",
+          title: "Learn More",
+          payload: `enquiry_product ${product["name"]}`
+        },
+        {
+          type: "postback",
+          title: "Add to Cart",
+          payload: `cart_add ${product["name"]}`
+        }
+      ]
+    };
+  });
+  return template_elements;
+}
+
+function generateRecommendationsResponse(product_types) {
+  let response = {
+    attachment: {
+      type: "template",
+      payload: {
+        template_type: "generic",
+        elements: generateRecommendationsTemplateElements([
+          {
+            id: 1,
+            name: "Dark Chocolate Oatmeal Cookies",
+            price: 3.5,
+            url:
+              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+            attribute: {
+              allegens: ['eggs', 'nut'],
+              colour: null,
+              
+            }
+          },
+          {
+            id: 2,
+            name: "Cranberry Sweetheart Cookies (Eggless)",
+            price: 3.5,
+            url:
+              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg"
+          },
+          {
+            id: 3,
+            name: "Earl Grey Sunflower Seeds Cookies",
+            price: 3.5,
+            url:
+              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg"
+          }
+        ])
+      }
+    }
+  };
+  return response;
+}
+
+function generateAddCartResponse(sender_psid, product_name, quantity) {
+  // TODO: Add product to cart in db
+
+  return {
+    text: `Added ${quantity} ${product_name} to cart.`,
+    quick_replies: [
+      {
+        "content_type": "text",
+        "title": "View Cart",
+        "payload": `cart_view`
+      },
+      {
+        "content_type": "text",
+        "title": "Checkout",
+        "payload": `checkout`
+      }
+    ]
+  };
+}
+
+function generateCartTemplateElements(products) {
+  let template_elements = products.map(product => {
+    return {
+      title: product["name"],
+      subtitle: `Qty: ${product["quantity"]} ($${product["price"]} each)`,
+      image_url: product["url"],
+      buttons: [
+        {
+          type: "postback",
+          title: "Add 1",
+          payload: `cart_add ${product["name"]}`
+        },
+        {
+          type: "postback",
+          title: "Remove All",
+          payload: `cart_remove ${product["name"]}`
+        }
+      ]
+    };
+  });
+  return template_elements;
+}
+
+function generateViewCartResponse(product_types) {
+  let response = {
+    attachment: {
+      type: "template",
+      payload: {
+        template_type: "generic",
+        elements: generateCartTemplateElements([
+          {
+            id: 1,
+            name: "Dark Chocolate Oatmeal Cookies",
+            price: 3.5,
+            url:
+              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+            quantity: 1
+          },
+          {
+            id: 2,
+            name: "Cranberry Sweetheart Cookies (Eggless)",
+            price: 3.5,
+            url:
+              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+            quantity: 2
+          },
+          {
+            id: 3,
+            name: "Earl Grey Sunflower Seeds Cookies",
+            price: 3.5,
+            url:
+              "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+            quantity: 1
+          }
+        ])
+      }
+    }
+  };
+  return response;
+}
+
 // Handles messaging_postbacks events
 function handlePostback(sender_psid, received_postback) {
   let response;
-  
-//   // Get the payload for the postback
-//   let payload = received_postback.payload;
-  
-//   // Set the response based on the postback payload
-//   if (payload === "yes") {
-//     response = { text: "Thanks!" };
-//   } else if (payload === "no") {
-//     response = { text: "Oops, try sending another image." };
-//   }
-  
-  response = defaultResponse();
-  
+
+  // Get the payload for the postback
+  let payload = received_postback.payload;
+  console.log(`Received postback: "${payload}"`);
+
+  let postback_intent = payload.split(" ")[0];
+  let postback_content = payload.substring(
+    payload.indexOf(" ") + 1,
+    payload.length
+  );
+
+  // Set the response based on the postback intent
+  if (postback_intent === "cart_add") {
+    // Add to cart
+    response = generateAddCartResponse(sender_psid, postback_content, 1);
+  } else if (postback_intent === "cart_view") {
+    response = generateViewCartResponse(sender_psid);
+  } else if (postback_intent === "enquiry_product") {
+    response = {
+      text: `What would you like to know about our ${postback_content}?`
+    };
+  }
+
+  if (response == null) {
+    response = defaultResponse();
+  }
+
   // Send the message to acknowledge the postback
   callSendAPI(sender_psid, response);
 }
