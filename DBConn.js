@@ -1,11 +1,13 @@
-const Pool = require('pg').Pool
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-})
+// const Pool = require('pg').Pool
+// const pool = new Pool({
+  // user: process.env.DB_USER,
+  // host: process.env.DB_HOST,
+  // database: process.env.DB_NAME,
+  // password: process.env.DB_PASSWORD,
+  // port: process.env.DB_PORT,
+// })
+
+var MongoClient = require('mongodb').MongoClient
 
 function checkUser(fbid,name){
     var rowCount = "";
@@ -62,7 +64,7 @@ function checkCart(userID,products,quantity){
         products += results.something;
         quantity += results.something;
         updateCart(userID,products,quantity);
-    }
+    }})
 }
 
 // Initial creation of a fresh cart
@@ -85,4 +87,19 @@ function updateCart(userID,products,quantity){
     })
 }
 
-export { checkUser, createUser, getUserID, checkCart };
+//Get all products
+function getAllProducts(DB_PASSWORD){
+    MongoClient.connect('mongodb+srv://mongoadmin:'+DB_PASSWORD+'@fb-hack-chatbot-cevnk.mongodb.net/fbmsg', function (err, client) {
+      if (err) throw err
+      
+      var db = client.db('fbmsg')
+
+      db.collection('products').find().toArray(function (err, result) {
+        if (err) throw err
+
+        console.log(result)
+      })
+})
+}
+
+export { checkUser, createUser, getUserID, checkCart, getAllProducts };

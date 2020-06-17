@@ -3,6 +3,7 @@ Cart:
 2) userID
 3) productID
 4) quantity
+5) Price
 
 Order:
 1) orderID (PK)
@@ -31,8 +32,20 @@ Not needed
 Product: (KIV)
 1) productID
 2) productName
-3) productPrice
-4) productImageUrl
+3) productDesc
+4) productCount
+5) productPrice
+6) productImageUrl
+7) productPackaging
+8) productType
+9) productAllegens
+
+functionalities:
+a) getAllProducts
+b) getProductsByType
+c) getProductByID
+d) getProductPrice
+e) getproductDesc
 
 ProductAttributes:
 1) productID

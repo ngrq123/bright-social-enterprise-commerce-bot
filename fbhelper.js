@@ -1,12 +1,13 @@
 //Gets users name from facebook graph api
-const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-const fields = "currency,availability,condition,additional_image_cdn_urls,additional_variant_attributes,applinks,custom_data,commerce_insights,image_cdn_urls,id,inventory,image_url,name,ordering_index,price,product_catalog,product_group,retailer_id,retailer_product_group_id"
-
+const request = require("request");
+const CATLOG_ID = process.env.CATLOG_ID;
+const fields = "currency,availability,condition,id,inventory,image_url,name,price,retailer_id,retailer_product_group_id,description,custom_label_0,pattern,product_type,color,url,product_group";
+const uri = "https://graph.facebook.com/v7.0/"
 
 function getName(sender_psid,callback){
     var name = "Empty";
     request({
-        url:"https://graph.facebook.com/v3.3/" + sender_psid,
+        url:uri + sender_psid,
         qs:{
             access_token: PAGE_ACCESS_TOKEN,
             fields: "first_name",
@@ -25,10 +26,30 @@ function getName(sender_psid,callback){
     return name;
 }
 
+//Get all products with their ID from Facebook
+function getAllProducts(PAGE_ACCESS_TOKEN,appsecret_proof){
+    request({
+        url: uri + CATLOG_ID,
+        qs:{
+            access_token: PAGE_ACCESS_TOKEN,
+            appsecret_proof: appsecret_proof
+        },
+        method:"GET"
+    }, function(error,response,body){
+        if (error){
+            console.log(error)
+        }else{
+            var bodyObj = JSON.parse(body);
+            console.log(bodyObj)
+        }
+    });
+}
+
+
 //Gets product details from Facebook
 function getProductDetails(productID,callback){
     request({
-        url:"https://graph.facebook.com/v7.0/" + productID,
+        url:uri + productID,
         qs:{
             access_token: PAGE_ACCESS_TOKEN,
             fields:reqFields,
@@ -47,4 +68,4 @@ function getProductDetails(productID,callback){
 
 
 
-export { getname, getProductDetails };
+export { getName, getAllProducts, getProductDetails };

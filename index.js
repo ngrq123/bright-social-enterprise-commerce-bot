@@ -10,16 +10,30 @@ const express = require("express"),
   app = express().use(bodyParser.json()); // creates express http server
 const request = require("request");
 const dotenv = require('dotenv');
+const crypto = require('crypto');
 dotenv.config();
 
-import { checkUser, createUser, getUserID, checkCart } from './DBConn';
+import { checkUser, createUser, getUserID, checkCart, getAllProducts } from './DBConn';
 import { getName, getProductDetails } from './fbhelper';
 
 // Get page access token
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+const FB_APP_SECRET = process.env.FB_APP_SECRET;
+const DB_PASSWORD = process.env.DB_PASSWORD
+const appsecret_proof = crypto.createHmac('sha256',FB_APP_SECRET).update(PAGE_ACCESS_TOKEN).digest('hex')
 
 // Sets server port and logs message on success
 app.listen(3000, () => console.log("webhook is listening"));
+
+// For testing endpoints
+app.get("/test", (req,res) =>{
+    let body = req.body;
+    
+    getAllProducts(DB_PASSWORD);
+    res.status(200).send("Success");
+    
+});
+
 
 // Creates the endpoint for our webhook
 app.post("/webhook", (req, res) => {
@@ -44,6 +58,7 @@ app.post("/webhook", (req, res) => {
         getName(sender_psid, function(response){
             checkUser(sender_psid,response);
         });
+        
         handleMessage(sender_psid, webhook_event.message);
       } else if (webhook_event.postback) {
         handlePostback(sender_psid, webhook_event.postback);
