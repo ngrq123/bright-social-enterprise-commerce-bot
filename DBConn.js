@@ -107,9 +107,18 @@ function getProductDesc(pid){
     });
 }
 
-// get product by Name
-function getProductByName(name){
+// get products with all the differnt variations by Name
+function getProductsByName(name){
     return Product.find({'title':name}).then(function(prod){
+        return prod;
+    }).catch(function(err){
+       console.log(err) 
+    });
+}
+
+// get product by name and variation
+function getProductByNameVar(name,variation){
+    return Product.find({'title':name,'pattern':variation}).then(function(prod){
         return prod;
     }).catch(function(err){
        console.log(err) 
@@ -154,4 +163,4 @@ function updateCart(userID,products,quantity){
     })
 }
 
-export { getAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, getProductByName, checkUser, createUser };
+export { getAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar, checkUser, createUser };

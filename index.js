@@ -22,7 +22,7 @@ const DB_PASSWORD = process.env.DB_PASSWORD;
 mongoose.connect('mongodb+srv://mongoadmin:'+ DB_PASSWORD +'@fb-hack-chatbot-cevnk.mongodb.net/fbmsg',{useNewUrlParser: true,useCreateIndex: true, useFindAndModify: false}).then(() => console.log("DB Connection successful"));
 mongoose.Promise = global.Promise;
 
-import { chgetAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, getProductByName, checkUser, createUser } from './DBConn';
+import { chgetAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar, checkUser, createUser } from './DBConn';
 import { getName, getProductDetails } from './fbhelper';
 
 // Get page access token
@@ -74,7 +74,10 @@ app.get("/test", (req,res) =>{
     // getProductDesc('3060724697352196').then(function(description){
         // console.log(description);
     // });
-    getProductByName('Earl Grey Sunflower Seeds Cookies').then(function(prod){
+    // getProductsByName('Earl Grey Sunflower Seeds Cookies').then(function(prod){
+        // console.log(prod);
+    // });
+    getProductByNameVar('Earl Grey Sunflower Seeds Cookies','Gift box').then(function(prod){
         console.log(prod);
     });
     res.status(200).send("Success");
