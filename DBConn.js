@@ -1,12 +1,3 @@
-// const Pool = require('pg').Pool
-// const pool = new Pool({
-  // user: process.env.DB_USER,
-  // host: process.env.DB_HOST,
-  // database: process.env.DB_NAME,
-  // password: process.env.DB_PASSWORD,
-  // port: process.env.DB_PORT,
-// })
-
 const mongoose = require('mongoose');
 
 const productsSchema = new mongoose.Schema({
@@ -73,23 +64,6 @@ function getProductDesc(pid){
     }).catch(function(err){
        console.log(err) 
     });
-}
-
-function checkUser(fbid,name){
-    var rowCount = "";
-    
-    pool.query('SELECT * FROM users where fbid= $1',[fbid], (error, results) => {
-    if (error) {
-        throw error;
-    }
-    
-    rowCount = results.rowCount
-    if (rowCount == 0){
-        createUser(fbid,name);
-    }
-    })
-    
-    return rowCount;
 }
 
 function createUser(fbid,name){
