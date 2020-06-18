@@ -553,25 +553,23 @@ function generateReceiptResponse(sender_psid) {
       type: "template",
       payload: {
         template_type: "receipt",
-        recipient_name: "<name>",
-        order_number: "<order_number>",
+        recipient_name: "<CUSTOMER_NAME>", // Mandatory field
+        order_number: "<ORDER_NUMBER>", // Mandatory field
         currency: "SGD",
         payment_method: "PayPal",
-        "order_url":"http://petersapparel.parseapp.com/order?order_id=123456",
-        "timestamp":"1428444852",
-        "address":{
-          "street_1":"1 Hacker Way",
-          "street_2":"",
-          "city":"Menlo Park",
-          "postal_code":"94025",
-          "state":"CA",
-          "country":"US"
+        order_url: "",
+        address: {
+          street_1: "9 Straits View", // Mandatory field
+          city: "Singapore",
+          postal_code: "018937",
+          state: "SG",
+          country: "SG"
         },
         summary: {
-          subtotal: 75.0 //,
-          // "shipping_cost":4.95,
-          // "total_tax":6.19,
-          // "total_cost":56.14
+          subtotal: 10,
+          shipping_cost: 5,
+          total_tax: 2,
+          total_cost: 15
         },
         elements: products.map(product => {
           return {
