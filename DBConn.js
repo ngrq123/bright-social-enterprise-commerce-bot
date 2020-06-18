@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
 
+const userSchema = new mongoose.Schema({
+    id: String,
+    name: String
+});
+
 const productsSchema = new mongoose.Schema({
     id: String,
     pid: String,
@@ -19,19 +24,52 @@ const productsSchema = new mongoose.Schema({
     allergens: String
 });
 
-const Product = mongoose.model('products',productsSchema);
+const cartSchema = new mongoose.Schema({
+    uid: String,
+    pid: String,
+    quantity: Number,
+    price: Number
+})
 
-//Get all products
-function getAllProducts(){
-    return Product.find({}).then(function(products){
-        return products;
+const ordersSchema = new mongoose.Schema({
+    uid: String,
+    trackingNum: Number,
+    orderStatus: Number,
+    orderDateTime: Date,
+    orderDetails: [{name:String,pid:String,quantity:Number,price:Number}] 
+    // Are we able to find a way to use Double/Float for datatypes?
+})
+
+const User = mongoose.model('users',userSchema);
+const Product = mongoose.model('products',productsSchema);
+const Cart = mongoose.model('cart',cartSchema);
+const Order = mongoose.model('orders',ordersSchema);
+
+// Create user if user not found in database
+function createUser(fbid,name){
+    var newUser = new User({
+        id:fbid,
+        name:name
+    });
+    newUser.save().then(doc => console.log(doc)).catch(err => console.log(err));
+}
+
+function checkUser(fbid){
+    return User.find({'id':fbid}).then(function(user){
+        return user;
     }).catch(function(err){
         console.log(err);
     });
 }
 
+//Get all products
+async function getAllProducts(){
+    let products = await Product.find({});
+    return products;
+}
+
 //Get product by type
-function getProductByType(typeValue){
+function getProductsByType(typeValue){
     return Product.find({'product_type':typeValue}).then(function(products){
         return products;
     }).catch(function(err){
@@ -66,27 +104,22 @@ function getProductDesc(pid){
     });
 }
 
-function createUser(fbid,name){
-    console.log(fbid + " " + name)
-    pool.query('INSERT INTO users(fbid,name) VALUES ($1,$2)',[fbid,name],(error,results) => {
-        if (error){
-            throw error;
-        }
-        console.log(results.insertId)
-    })
+// get products with all the differnt variations by Name
+function getProductsByName(name){
+    return Product.find({'title':name}).then(function(prod){
+        return prod;
+    }).catch(function(err){
+       console.log(err) 
+    });
 }
 
-function getUserID(fbid){
-    var userID = "";
-    
-    pool.query('SELECT * FROM users where fbid=$1',[fbid],(error, results) =>{
-        if (error){
-            throw error;
-        }
-        console.log(results)
-    })
-    
-    return userID;
+// get product by name and variation
+function getProductByNameVar(name,variation){
+    return Product.find({'title':name,'pattern':variation}).then(function(prod){
+        return prod;
+    }).catch(function(err){
+       console.log(err) 
+    });
 }
 
 //Check if user has an active shopping cart
@@ -127,4 +160,4 @@ function updateCart(userID,products,quantity){
     })
 }
 
-export { getAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc };
+export { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar, checkUser, createUser };

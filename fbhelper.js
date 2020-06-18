@@ -4,7 +4,7 @@ const CATLOG_ID = process.env.CATLOG_ID;
 const fields = "currency,availability,condition,id,inventory,image_url,name,price,retailer_id,retailer_product_group_id,description,custom_label_0,pattern,product_type,color,url,product_group";
 const uri = "https://graph.facebook.com/v7.0/"
 
-function getName(sender_psid,callback){
+function getName(PAGE_ACCESS_TOKEN,sender_psid,callback){
     var name = "Empty";
     request({
         url:uri + sender_psid,
