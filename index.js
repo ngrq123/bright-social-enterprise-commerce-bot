@@ -9,14 +9,30 @@ const express = require("express"),
   bodyParser = require("body-parser"),
   app = express().use(bodyParser.json()); // creates express http server
 const request = require("request");
-
-// import { checkUser, createUser } from './DBConn';
+const dotenv = require('dotenv');
+const crypto = require('crypto');
+const mongoose = require('mongoose');
+dotenv.config();
 
 // Get page access token
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
+// Setup to connect to DB
+const DB_PASSWORD = process.env.DB_PASSWORD;
+mongoose.connect('mongodb+srv://mongoadmin:'+ DB_PASSWORD +'@fb-hack-chatbot-cevnk.mongodb.net/fbmsg',{useNewUrlParser: true,useCreateIndex: true, useFindAndModify: false}).then(() => console.log("DB Connection successful"));
+mongoose.Promise = global.Promise;
+
+import { chgetAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc } from './DBConn';
+import { getName, getProductDetails } from './fbhelper';
+
+// Get page access token
+const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+const FB_APP_SECRET = process.env.FB_APP_SECRET;
+const appsecret_proof = crypto.createHmac('sha256',FB_APP_SECRET).update(PAGE_ACCESS_TOKEN).digest('hex')
+
 // Sets server port and logs message on success
 app.listen(3000, () => console.log("webhook is listening"));
+
 
 // Adds support for GET requests to our webhook
 app.get("/webhook", (req, res) => {
@@ -41,6 +57,28 @@ app.get("/webhook", (req, res) => {
   }
 });
 
+// For testing endpoints
+app.get("/test", (req,res) =>{
+    let body = req.body;
+    // getAllProducts().then(function(products){
+    // console.log(products);
+    // });
+    // getProductByType("Baker").then(function(products){
+    // console.log(products);
+    // });
+    // getProductByID('3060724697352196').then(function(prod){
+        // console.log(prod);
+    // });
+    // getProductPrice('3060724697352196').then(function(price){
+        // console.log(price);
+    // });
+    getProductDesc('3060724697352196').then(function(description){
+        console.log(description);
+    });
+    res.status(200).send("Success");
+    
+});
+
 // Creates the endpoint for our webhook
 app.post("/webhook", (req, res) => {
   let body = req.body;
@@ -61,14 +99,17 @@ app.post("/webhook", (req, res) => {
       // Check if the event is a message or postback and
       // pass the event to the appropriate handler function
       if (webhook_event.message) {
-        // getName(sender_psid, function(response){
-        //     checkUser(sender_psid,response);
-        // });
         if (webhook_event.message.quick_reply) {
           handlePostback(sender_psid, webhook_event.message.quick_reply);
         } else {
           handleMessage(sender_psid, webhook_event.message);
         }
+        getName(sender_psid, function(response){
+            checkUser(sender_psid,response);
+        });
+        
+        handleMessage(sender_psid, webhook_event.message);
+
       } else if (webhook_event.postback) {
         handlePostback(sender_psid, webhook_event.postback);
       }
@@ -82,32 +123,33 @@ app.post("/webhook", (req, res) => {
   }
 });
 
-// Gets users name from facebook graph api
-// function getName(sender_psid,callback){
-//     var name = "Empty";
-//     request({
-//         url:"https://graph.facebook.com/v3.3/" + sender_psid,
-//         qs:{
-//             access_token: PAGE_ACCESS_TOKEN,
-//             fields: "first_name",
-//         },
-//         method:"GET"
-//     }, function(error,response,body){
-//         if (error){
-//             console.log(error)
-//         }else{
-//             var bodyObj = JSON.parse(body);
-//             name = bodyObj.first_name;
-//             console.log("Name: " + name);
-//             return callback(name)
-//         }
-//     });
-//     return name;
-// }
-
 let defaultResponse = generateResponseFromMessage(
   "We could not understand your message. Kindly rephrase your message and send us again."
 );
+
+=======
+// Adds support for GET requests to our webhook
+app.get("/webhook", (req, res) => {
+  let VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+
+  // Parse the query params
+  let mode = req.query["hub.mode"];
+  let token = req.query["hub.verify_token"];
+  let challenge = req.query["hub.challenge"];
+
+  // Checks if a token and mode is in the query string of the request
+  if (mode && token) {
+    // Checks the mode and token sent is correct
+    if (mode === "subscribe" && token === VERIFY_TOKEN) {
+      // Responds with the challenge token from the request
+      console.log("WEBHOOK_VERIFIED");
+      res.status(200).send(challenge);
+    } else {
+      // Responds with '403 Forbidden' if verify tokens do not match
+      res.sendStatus(403);
+    }
+  }
+});
 
 // Handles messages events
 function handleMessage(sender_psid, received_message) {

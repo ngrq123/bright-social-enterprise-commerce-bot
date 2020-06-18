@@ -1,0 +1,53 @@
+Cart:
+1) cartID (PK)
+2) userID
+3) productID
+4) quantity
+5) Price
+
+Order:
+1) orderID (PK)
+2) userID
+3) trackingNum
+4) orderStatus --> Store status as 1,2,3 "tobedelviered","Courier","Delivered"
+5) orderDateTime
+6) orderDetails --> (json) [{productName:"",productID:"",quantity:"" ,price:"" }]
+
+TBD:
+1) Complete database CRUD on webhook end (Douglus)
+2) Complete Facebook processing of products (Randy)
+3) Process data and throw to frontend and interact with user (RuiQin)
+
+
+Flow:
+General Enquiry (KIV)
+Recoomendations
+Product Enquiries
+Cart
+Payment
+Order Status/Delivery 
+
+
+Not needed
+Product: (KIV)
+1) productID
+2) productName
+3) productDesc
+4) productCount
+5) productPrice
+6) productImageUrl
+7) productPackaging
+8) productType
+9) productAllegens
+
+functionalities:
+a) getAllProducts
+b) getProductsByType
+c) getProductByID
+d) getProductPrice
+e) getproductDesc
+
+ProductAttributes:
+1) productID
+2) allergens --> []
+3) packaging --> []
