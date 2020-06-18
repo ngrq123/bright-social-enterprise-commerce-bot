@@ -24,8 +24,26 @@ const productsSchema = new mongoose.Schema({
     allergens: String
 });
 
+const cartSchema = new mongoose.Schema({
+    uid: String,
+    pid: String,
+    quantity: Number,
+    price: Number
+})
+
+const ordersSchema = new mongoose.Schema({
+    uid: String,
+    trackingNum: Number,
+    orderStatus: Number,
+    orderDateTime: Date,
+    orderDetails: [{name:String,pid:String,quantity:Number,price:Number}] 
+    // Are we able to find a way to use Double/Float for datatypes?
+})
+
 const User = mongoose.model('users',userSchema);
 const Product = mongoose.model('products',productsSchema);
+const Cart = mongoose.model('cart',cartSchema);
+const Order = mongoose.mdoel('orders',ordersSchema);
 
 // Create user if user not found in database
 function createUser(fbid,name){
