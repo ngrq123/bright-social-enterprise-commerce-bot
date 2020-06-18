@@ -43,7 +43,7 @@ const ordersSchema = new mongoose.Schema({
 const User = mongoose.model('users',userSchema);
 const Product = mongoose.model('products',productsSchema);
 const Cart = mongoose.model('cart',cartSchema);
-const Order = mongoose.mdoel('orders',ordersSchema);
+const Order = mongoose.model('orders',ordersSchema);
 
 // Create user if user not found in database
 function createUser(fbid,name){
@@ -107,6 +107,15 @@ function getProductDesc(pid){
     });
 }
 
+// get product by Name
+function getProductByName(name){
+    return Product.find({'title':name}).then(function(prod){
+        return prod;
+    }).catch(function(err){
+       console.log(err) 
+    });
+}
+
 //Check if user has an active shopping cart
 function checkCart(userID,products,quantity){
     pool.query('SELECT * FROM cart where uid=$1',[userID],(error, results) =>{
@@ -145,4 +154,4 @@ function updateCart(userID,products,quantity){
     })
 }
 
-export { getAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, checkUser, createUser };
+export { getAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, getProductByName, checkUser, createUser };
