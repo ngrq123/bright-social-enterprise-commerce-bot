@@ -11,15 +11,20 @@ const express = require("express"),
 const request = require("request");
 const dotenv = require('dotenv');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 dotenv.config();
 
-import { checkUser, createUser, getUserID, checkCart, getAllProducts } from './DBConn';
+// Setup to connect to DB
+const DB_PASSWORD = process.env.DB_PASSWORD;
+mongoose.connect('mongodb+srv://mongoadmin:'+ DB_PASSWORD +'@fb-hack-chatbot-cevnk.mongodb.net/fbmsg',{useNewUrlParser: true,useCreateIndex: true, useFindAndModify: false}).then(() => console.log("DB Connection successful"));
+mongoose.Promise = global.Promise;
+
+import { chgetAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc } from './DBConn';
 import { getName, getProductDetails } from './fbhelper';
 
 // Get page access token
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const FB_APP_SECRET = process.env.FB_APP_SECRET;
-const DB_PASSWORD = process.env.DB_PASSWORD
 const appsecret_proof = crypto.createHmac('sha256',FB_APP_SECRET).update(PAGE_ACCESS_TOKEN).digest('hex')
 
 // Sets server port and logs message on success
@@ -28,8 +33,21 @@ app.listen(3000, () => console.log("webhook is listening"));
 // For testing endpoints
 app.get("/test", (req,res) =>{
     let body = req.body;
-    
-    getAllProducts(DB_PASSWORD);
+    // getAllProducts().then(function(products){
+    // console.log(products);
+    // });
+    // getProductByType("Baker").then(function(products){
+    // console.log(products);
+    // });
+    // getProductByID('3060724697352196').then(function(prod){
+        // console.log(prod);
+    // });
+    // getProductPrice('3060724697352196').then(function(price){
+        // console.log(price);
+    // });
+    getProductDesc('3060724697352196').then(function(description){
+        console.log(description);
+    });
     res.status(200).send("Success");
     
 });
