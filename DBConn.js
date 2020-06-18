@@ -19,7 +19,23 @@ const productsSchema = new mongoose.Schema({
     allergens: String
 });
 
+const userSchema = new mongoose.Schema({
+    id: String,
+    name: String
+});
+
 const Product = mongoose.model('products',productsSchema);
+
+// Create user if user not found in database
+function createUser(fbid,name){
+    console.log(fbid + " " + name)
+    pool.query('INSERT INTO users(fbid,name) VALUES ($1,$2)',[fbid,name],(error,results) => {
+        if (error){
+            throw error;
+        }
+        console.log(results.insertId)
+    })
+}
 
 //Get all products
 function getAllProducts(){
@@ -64,29 +80,6 @@ function getProductDesc(pid){
     }).catch(function(err){
        console.log(err) 
     });
-}
-
-function createUser(fbid,name){
-    console.log(fbid + " " + name)
-    pool.query('INSERT INTO users(fbid,name) VALUES ($1,$2)',[fbid,name],(error,results) => {
-        if (error){
-            throw error;
-        }
-        console.log(results.insertId)
-    })
-}
-
-function getUserID(fbid){
-    var userID = "";
-    
-    pool.query('SELECT * FROM users where fbid=$1',[fbid],(error, results) =>{
-        if (error){
-            throw error;
-        }
-        console.log(results)
-    })
-    
-    return userID;
 }
 
 //Check if user has an active shopping cart

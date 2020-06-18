@@ -26,7 +26,6 @@ import { chgetAllProducts, getProductByType, getProductByID, getProductPrice, ge
 import { getName, getProductDetails } from './fbhelper';
 
 // Get page access token
-const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const FB_APP_SECRET = process.env.FB_APP_SECRET;
 const appsecret_proof = crypto.createHmac('sha256',FB_APP_SECRET).update(PAGE_ACCESS_TOKEN).digest('hex')
 
@@ -127,7 +126,6 @@ let defaultResponse = generateResponseFromMessage(
   "We could not understand your message. Kindly rephrase your message and send us again."
 );
 
-=======
 // Adds support for GET requests to our webhook
 app.get("/webhook", (req, res) => {
   let VERIFY_TOKEN = process.env.VERIFY_TOKEN;
