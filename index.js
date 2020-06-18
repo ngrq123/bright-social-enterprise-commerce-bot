@@ -22,7 +22,7 @@ const DB_PASSWORD = process.env.DB_PASSWORD;
 mongoose.connect('mongodb+srv://mongoadmin:'+ DB_PASSWORD +'@fb-hack-chatbot-cevnk.mongodb.net/fbmsg',{useNewUrlParser: true,useCreateIndex: true, useFindAndModify: false}).then(() => console.log("DB Connection successful"));
 mongoose.Promise = global.Promise;
 
-import { chgetAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc } from './DBConn';
+import { chgetAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, checkUser, createUser } from './DBConn';
 import { getName, getProductDetails } from './fbhelper';
 
 // Get page access token
@@ -103,8 +103,12 @@ app.post("/webhook", (req, res) => {
         } else {
           handleMessage(sender_psid, webhook_event.message);
         }
-        getName(sender_psid, function(response){
-            checkUser(sender_psid,response);
+        getName(PAGE_ACCESS_TOKEN,sender_psid, function(response){
+            checkUser(sender_psid,response).then(function(user){
+                if (user.length == 0){
+                    createUser(sender_psid,response);
+                }
+            });
         });
         
         handleMessage(sender_psid, webhook_event.message);

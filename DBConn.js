@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
 
+const userSchema = new mongoose.Schema({
+    id: String,
+    name: String
+});
+
 const productsSchema = new mongoose.Schema({
     id: String,
     pid: String,
@@ -19,22 +24,24 @@ const productsSchema = new mongoose.Schema({
     allergens: String
 });
 
-const userSchema = new mongoose.Schema({
-    id: String,
-    name: String
-});
-
+const User = mongoose.model('users',userSchema);
 const Product = mongoose.model('products',productsSchema);
 
 // Create user if user not found in database
 function createUser(fbid,name){
-    console.log(fbid + " " + name)
-    pool.query('INSERT INTO users(fbid,name) VALUES ($1,$2)',[fbid,name],(error,results) => {
-        if (error){
-            throw error;
-        }
-        console.log(results.insertId)
-    })
+    var newUser = new User({
+        id:fbid,
+        name:name
+    });
+    newUser.save().then(doc => console.log(doc)).catch(err => console.log(err));
+}
+
+function checkUser(fbid){
+    return User.find({'id':fbid}).then(function(user){
+        return user;
+    }).catch(function(err){
+        console.log(err);
+    });
 }
 
 //Get all products
@@ -120,4 +127,4 @@ function updateCart(userID,products,quantity){
     })
 }
 
-export { getAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc };
+export { getAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, checkUser, createUser };
