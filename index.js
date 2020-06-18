@@ -64,7 +64,11 @@ app.post("/webhook", (req, res) => {
         // getName(sender_psid, function(response){
         //     checkUser(sender_psid,response);
         // });
-        handleMessage(sender_psid, webhook_event.message);
+        if (webhook_event.message.quick_reply) {
+          handlePostback(sender_psid, webhook_event.message.quick_reply);
+        } else {
+          handleMessage(sender_psid, webhook_event.message);
+        }
       } else if (webhook_event.postback) {
         handlePostback(sender_psid, webhook_event.postback);
       }
@@ -163,7 +167,7 @@ function handlePostback(sender_psid, received_postback) {
           buttons: [
             {
               type: "postback",
-              text: "Pay",
+              title: "Pay",
               payload: "paid"
             }
           ]
@@ -180,7 +184,7 @@ function handlePostback(sender_psid, received_postback) {
           buttons: [
             {
               type: "postback",
-              text: "View Receipt",
+              title: "View Receipt",
               payload: "receipt_view"
             }
           ]
@@ -553,16 +557,16 @@ function generateReceiptResponse(sender_psid) {
         order_number: "<order_number>",
         currency: "SGD",
         payment_method: "PayPal",
-        // "order_url":"http://petersapparel.parseapp.com/order?order_id=123456",
-        // "timestamp":"1428444852",
-        // "address":{
-        //   "street_1":"1 Hacker Way",
-        //   "street_2":"",
-        //   "city":"Menlo Park",
-        //   "postal_code":"94025",
-        //   "state":"CA",
-        //   "country":"US"
-        // },
+        "order_url":"http://petersapparel.parseapp.com/order?order_id=123456",
+        "timestamp":"1428444852",
+        "address":{
+          "street_1":"1 Hacker Way",
+          "street_2":"",
+          "city":"Menlo Park",
+          "postal_code":"94025",
+          "state":"CA",
+          "country":"US"
+        },
         summary: {
           subtotal: 75.0 //,
           // "shipping_cost":4.95,
