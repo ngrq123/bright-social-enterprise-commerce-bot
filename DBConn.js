@@ -63,9 +63,12 @@ function checkUser(fbid){
 }
 
 //Get all products
-async function getAllProducts(){
-    let products = await Product.find({});
-    return products;
+function getAllProducts(){
+    return Product.find({}).then(function(products){
+        return products;
+    }).catch(function(err){
+        console.log(err);
+    });
 }
 
 //Get product by type

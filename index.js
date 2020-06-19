@@ -194,7 +194,7 @@ function handlePostback(sender_psid, received_postback) {
     payload.indexOf(" ") + 1,
     payload.length
   );
-
+  
   // Set the response based on the postback intent
   if (postback_intent === "cart_add") {
     // Add to cart
@@ -205,6 +205,13 @@ function handlePostback(sender_psid, received_postback) {
     response = generateResponseFromMessage(
       `What would you like to know about our ${postback_content}?`
     );
+  } else if (postback_intent === "enquiry_product_attribute") {
+    let attribute = postback_content.substring(0, postback_content.indexOf(" ") + 1);
+    let product = postback_content.substring(
+      postback_content.indexOf(" ") + 1,
+      postback_content.length
+    );
+    response = generateProductEnquiryResponse(product, attribute);
   } else if (postback_intent === "checkout") {
     response = {
       attachment: {
@@ -283,7 +290,7 @@ function callSendAPI(sender_psid, response) {
 }
 
 // Process text message and returns response object to handleMessage()
-async function processMessage(sender_psid, message) {
+function processMessage(sender_psid, message) {
   // NLP: https://developers.facebook.com/docs/messenger-platform/built-in-nlp
   let entities = message.nlp["entities"];
 
@@ -323,7 +330,7 @@ async function processMessage(sender_psid, message) {
             .map(obj => obj["value"]);
         }
 
-        response = await generateRecommendationsResponse(product_types);
+        response = generateRecommendationsResponse(product_types);
         console.log(response);
         break;
 
@@ -335,11 +342,16 @@ async function processMessage(sender_psid, message) {
 
         if (intent_subcategory === "product") {
           // Retrieve product and attribute from entities object
-          if (entities["product"] && entities["attribute"]) {
-            let product = entities["product"][0];
-            let attribute = entities["attribute"][0];
-            // TODO: Handle product enquiry
+          if (entities["product"] && entities["product_attribute"]) {
+            let product = entities["product"][0]["value"];
+            let attribute = entities["product_attribute"][0]["value"];
+            // Handle product enquiry
             response = generateProductEnquiryResponse(product, attribute);
+          } else if (entities["product_type"] && entities["product_attribute"]) {
+            // Handle product type enquiry
+            let product_type = entities["product_type"][0]["value"];
+            let attribute = entities["product_attribute"][0]["value"];
+            response = generateProductTypeEnquiryResponse(product_type, attribute);
           } else {
             response = defaultResponse;
           }
@@ -411,7 +423,7 @@ async function processMessage(sender_psid, message) {
     // Message has no intent, just greeting
     // TODO: Add quick replies of chatbot functionalities (recommendations, check order status, etc.)
     return generateResponseFromMessage(
-      "Hi there! Welcome to MINDS. How can I help you?"
+      "Hi there! Welcome to Bright. How can I help you?"
     );
   }
 
@@ -428,13 +440,12 @@ function generateResponseFromMessage(message) {
 
 // Response on generic template carousel for recommendations
 async function generateRecommendationsResponse(product_types) {
-  // TODO: Retrieve products to recommend based on list of product types. If product types is an empty array, recommend products of various types
+  // Retrieve products to recommend based on list of product types. If product types is an empty array, recommend products of various types
   let products;
   
   if (product_types.length === 0) {
     products = await getAllProducts();
   } else {
-    console.log(product_types[0]);
     products = await getProductsByType(product_types[0]);
   }
   
@@ -621,5 +632,21 @@ function generateReceiptResponse(sender_psid) {
 // Response on prododuct enquiry
 function generateProductEnquiryResponse(product, attribute) {
   // TODO: Get product from db, create message and generate response
-  return defaultResponse;
+  return generateResponseFromMessage("You are enquiring about the " + attribute + " of " + product);
+}
+
+// Response on prododuct enquiry
+async function generateProductTypeEnquiryResponse(product_type, attribute) {
+  // TODO: Get product from db, create message and generate response
+  let products = await getProductsByType(product_type);
+  return {
+    text: `Which product are you enquiring about its ${attribute}?`,
+    quick_replies: products.map(product => {
+      return {
+        content_type: "text",
+        title: product.title,
+        payload: `enquiry_product_attribute ${attribute} ${product.title}`
+      }
+    })
+  };
 }
