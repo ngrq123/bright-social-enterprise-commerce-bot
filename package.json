@@ -10,10 +10,13 @@
     "crypto": "^1.0.1",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "fs": "0.0.1-security",
+    "https": "^1.0.0",
     "mongoose": "^5.9.19",
-    "pg": "^8.2.1",
-    "pg-promise": "^10.5.6",
-    "request": "^2.88.2"
+    "mongoose-float": "^1.0.4",
+    "mongoose-unique-validator": "^2.0.3",
+    "request": "^2.88.2",
+    "uuid": "^8.1.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
