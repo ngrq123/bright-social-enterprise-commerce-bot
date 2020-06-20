@@ -1,12 +1,20 @@
 const mongoose = require('mongoose');
+var uniqueValidator = require('mongoose-unique-validator');
+var User = mongoose.model('Cart');
+var User = mongoose.model('User');
 
-const ordersSchema = new mongoose.Schema({
-    uid: String,
-    trackingNum: Number,
-    orderStatus: Number,
-    orderDateTime: Date,
-    orderDetails: [{name:String,pid:String,quantity:Number,price:Number}] 
-    // Are we able to find a way to use Double/Float for datatypes?
-})
+const orderSchema = new mongoose.Schema({
+    customer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    trackingNumber: { type: Number, unique: true },
+    orderStatus: {
+        type: String,
+        enum : ['Order Received','Packing','Out For Delivery','Delivered','Refund'],
+        default: 'Order Received'
+    },
+    cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
+}, { timestamps: true });
 
-const Order = mongoose.model('orders',ordersSchema);
+orderSchema.plugin(uniqueValidator, { message: 'is already exist.' });
+
+const Order = mongoose.model('Order', orderSchema);
+

@@ -19,7 +19,7 @@ const productsSchema = new mongoose.Schema({
     allergens: String
 });
 
-const Product = mongoose.model('products',productsSchema);
+const Product = mongoose.model('Product',productsSchema);
 
 
 //Get all products

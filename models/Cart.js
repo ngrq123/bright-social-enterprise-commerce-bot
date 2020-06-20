@@ -25,7 +25,7 @@ const cartSchema = new mongoose.Schema({
 
 cartSchema.plugin(uniqueValidator, { message: 'is already taken.' });
 
-const Cart = mongoose.model('cart', cartSchema);
+const Cart = mongoose.model('Cart', cartSchema);
 
 // Initial creation of a fresh cart with an item(s)
 async function createCart(userId, pid, title, description, condition, price, quantity, brand, item_group_id, color, pattern, product_type, allergens) {

@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
     cartId: { type: String, unique: true }
 });
 
-const User = mongoose.model('users',userSchema);
+const User = mongoose.model('User',userSchema);
 
 // Create user if user not found in database
 function createUser(fbid,name){
