@@ -32,7 +32,7 @@ function getAllProducts(){
 }
 
 //Get product by type
-function getProductByType(typeValue){
+function getProductsByType(typeValue){
     return Product.find({'product_type':typeValue}).then(function(products){
         return products;
     }).catch(function(err){
@@ -85,4 +85,4 @@ function getProductByNameVar(name,variation){
     });
 }
 
-export { getAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar };
+export { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar };
