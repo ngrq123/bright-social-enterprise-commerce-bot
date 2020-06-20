@@ -29,6 +29,8 @@ const appsecret_proof = crypto.createHmac('sha256',FB_APP_SECRET).update(PAGE_AC
 //Import Schema
 require('./models/User');
 require('./models/Product');
+require('./models/Cart');
+require('./models/Order');
 
 //Import routes
 app.use(require('./routes'));

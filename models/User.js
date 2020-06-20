@@ -1,8 +1,10 @@
 const mongoose = require('mongoose');
+var uniqueValidator = require('mongoose-unique-validator');
 
 const userSchema = new mongoose.Schema({
-    id: String,
-    name: String
+    id: { type: String, required: true, unique: true },
+    name: String,
+    cartId: { type: String, unique: true }
 });
 
 const User = mongoose.model('users',userSchema);
