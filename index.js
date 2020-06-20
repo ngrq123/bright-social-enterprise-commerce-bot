@@ -22,7 +22,7 @@ const DB_PASSWORD = process.env.DB_PASSWORD;
 mongoose.connect('mongodb+srv://mongoadmin:'+ DB_PASSWORD +'@fb-hack-chatbot-cevnk.mongodb.net/fbmsg',{useNewUrlParser: true,useCreateIndex: true, useFindAndModify: false}).then(() => console.log("DB Connection successful"));
 mongoose.Promise = global.Promise;
 
-import { chgetAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar, checkUser, createUser } from './DBConn';
+import { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar, checkUser, createUser } from './DBConn';
 import { getName, getProductDetails } from './fbhelper';
 
 // Get page access token
@@ -31,7 +31,6 @@ const appsecret_proof = crypto.createHmac('sha256',FB_APP_SECRET).update(PAGE_AC
 
 // Sets server port and logs message on success
 app.listen(3000, () => console.log("webhook is listening"));
-
 
 // Adds support for GET requests to our webhook
 app.get("/webhook", (req, res) => {
@@ -77,9 +76,9 @@ app.get("/test", (req,res) =>{
     // getProductsByName('Earl Grey Sunflower Seeds Cookies').then(function(prod){
         // console.log(prod);
     // });
-    getProductByNameVar('Earl Grey Sunflower Seeds Cookies','Gift box').then(function(prod){
-        console.log(prod);
-    });
+    // getProductByNameVar('Earl Grey Sunflower Seeds Cookies','Gift box').then(function(prod){
+    //     console.log(prod);
+    // });
     res.status(200).send("Success");
     
 });
@@ -109,6 +108,7 @@ app.post("/webhook", (req, res) => {
         } else {
           handleMessage(sender_psid, webhook_event.message);
         }
+        
         getName(PAGE_ACCESS_TOKEN,sender_psid, function(response){
             checkUser(sender_psid,response).then(function(user){
                 if (user.length == 0){
@@ -116,8 +116,6 @@ app.post("/webhook", (req, res) => {
                 }
             });
         });
-        
-        handleMessage(sender_psid, webhook_event.message);
 
       } else if (webhook_event.postback) {
         handlePostback(sender_psid, webhook_event.postback);
@@ -160,14 +158,14 @@ app.get("/webhook", (req, res) => {
 });
 
 // Handles messages events
-function handleMessage(sender_psid, received_message) {
+async function handleMessage(sender_psid, received_message) {
   let response;
 
   // Check if the message contains text
   if (received_message.text) {
     console.log(`Received message: "${received_message.text}"`);
 
-    response = processMessage(sender_psid, received_message);
+    response = await processMessage(sender_psid, received_message);
     // Default response (for debugging)
     // Create the payload for a basic text message
     // response = {
@@ -196,7 +194,7 @@ function handlePostback(sender_psid, received_postback) {
     payload.indexOf(" ") + 1,
     payload.length
   );
-
+  
   // Set the response based on the postback intent
   if (postback_intent === "cart_add") {
     // Add to cart
@@ -207,6 +205,13 @@ function handlePostback(sender_psid, received_postback) {
     response = generateResponseFromMessage(
       `What would you like to know about our ${postback_content}?`
     );
+  } else if (postback_intent === "enquiry_product_attribute") {
+    let attribute = postback_content.substring(0, postback_content.indexOf(" ") + 1);
+    let product = postback_content.substring(
+      postback_content.indexOf(" ") + 1,
+      postback_content.length
+    );
+    response = generateProductEnquiryResponse(product, attribute);
   } else if (postback_intent === "checkout") {
     response = {
       attachment: {
@@ -290,10 +295,10 @@ function processMessage(sender_psid, message) {
   let entities = message.nlp["entities"];
 
   // Uncomment to view all entities and their xalues
-  // Object.keys(entities).forEach(key => {
-  //   console.log("Entity: " + key);
-  //   console.log(entities[key]);
-  // });
+  Object.keys(entities).forEach(key => {
+    console.log("Entity: " + key);
+    console.log(entities[key]);
+  });
 
   // Check greeting
   let is_greeting =
@@ -326,6 +331,7 @@ function processMessage(sender_psid, message) {
         }
 
         response = generateRecommendationsResponse(product_types);
+        console.log(response);
         break;
 
       case "enquiry":
@@ -336,11 +342,16 @@ function processMessage(sender_psid, message) {
 
         if (intent_subcategory === "product") {
           // Retrieve product and attribute from entities object
-          if (entities["product"] && entities["attribute"]) {
-            let product = entities["product"][0];
-            let attribute = entities["attribute"][0];
-            // TODO: Handle product enquiry
+          if (entities["product"] && entities["product_attribute"]) {
+            let product = entities["product"][0]["value"];
+            let attribute = entities["product_attribute"][0]["value"];
+            // Handle product enquiry
             response = generateProductEnquiryResponse(product, attribute);
+          } else if (entities["product_type"] && entities["product_attribute"]) {
+            // Handle product type enquiry
+            let product_type = entities["product_type"][0]["value"];
+            let attribute = entities["product_attribute"][0]["value"];
+            response = generateProductTypeEnquiryResponse(product_type, attribute);
           } else {
             response = defaultResponse;
           }
@@ -412,7 +423,7 @@ function processMessage(sender_psid, message) {
     // Message has no intent, just greeting
     // TODO: Add quick replies of chatbot functionalities (recommendations, check order status, etc.)
     return generateResponseFromMessage(
-      "Hi there! Welcome to MINDS. How can I help you?"
+      "Hi there! Welcome to Bright. How can I help you?"
     );
   }
 
@@ -428,36 +439,16 @@ function generateResponseFromMessage(message) {
 }
 
 // Response on generic template carousel for recommendations
-function generateRecommendationsResponse(product_types) {
-  // TODO: Retrieve products to recommend based on list of product types. If product types is an empty array, recommend products of various types
-  let products = [
-    {
-      id: 1,
-      name: "Dark Chocolate Oatmeal Cookies",
-      price: 3.5,
-      url:
-        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-      attribute: {
-        allegens: ["eggs", "nut"],
-        colour: null
-      }
-    },
-    {
-      id: 2,
-      name: "Cranberry Sweetheart Cookies (Eggless)",
-      price: 3.5,
-      url:
-        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg"
-    },
-    {
-      id: 3,
-      name: "Earl Grey Sunflower Seeds Cookies",
-      price: 3.5,
-      url:
-        "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg"
-    }
-  ];
-
+async function generateRecommendationsResponse(product_types) {
+  // Retrieve products to recommend based on list of product types. If product types is an empty array, recommend products of various types
+  let products;
+  
+  if (product_types.length === 0) {
+    products = await getAllProducts();
+  } else {
+    products = await getProductsByType(product_types[0]);
+  }
+  
   let response = {
     attachment: {
       type: "template",
@@ -465,19 +456,19 @@ function generateRecommendationsResponse(product_types) {
         template_type: "generic",
         elements: products.map(product => {
           return {
-            title: product["name"],
+            title: product["title"],
             subtitle: `$${product["price"]}`,
-            image_url: product["url"],
+            image_url: product["image_link"],
             buttons: [
               {
                 type: "postback",
                 title: "Learn More",
-                payload: `enquiry_product ${product["name"]}`
+                payload: `enquiry_product ${product["title"]}`
               },
               {
                 type: "postback",
                 title: "Add to Cart",
-                payload: `cart_add ${product["name"]}`
+                payload: `cart_add ${product["title"]}`
               }
             ]
           };
@@ -641,5 +632,21 @@ function generateReceiptResponse(sender_psid) {
 // Response on prododuct enquiry
 function generateProductEnquiryResponse(product, attribute) {
   // TODO: Get product from db, create message and generate response
-  return defaultResponse;
+  return generateResponseFromMessage("You are enquiring about the " + attribute + " of " + product);
+}
+
+// Response on prododuct enquiry
+async function generateProductTypeEnquiryResponse(product_type, attribute) {
+  // TODO: Get product from db, create message and generate response
+  let products = await getProductsByType(product_type);
+  return {
+    text: `Which product are you enquiring about its ${attribute}?`,
+    quick_replies: products.map(product => {
+      return {
+        content_type: "text",
+        title: product.title,
+        payload: `enquiry_product_attribute ${attribute} ${product.title}`
+      }
+    })
+  };
 }
