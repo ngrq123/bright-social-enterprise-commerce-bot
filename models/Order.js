@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 var uniqueValidator = require('mongoose-unique-validator');
-var User = mongoose.model('Cart');
+var Cart = mongoose.model('Cart');
 var User = mongoose.model('User');
 
 const orderSchema = new mongoose.Schema({
@@ -17,4 +17,6 @@ const orderSchema = new mongoose.Schema({
 orderSchema.plugin(uniqueValidator, { message: 'is already exist.' });
 
 const Order = mongoose.model('Order', orderSchema);
+
+
 
