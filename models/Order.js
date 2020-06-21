@@ -45,7 +45,7 @@ async function createOrder(user){
 async function getOrder(user){
     let cartId = user.cartId;
     
-    let getCart = await Cart.find({ uid: getCartId }).then((cart) => { return cart }).catch((err) =>console.error(err))
+    let getCart = await Cart.find({ uid: cartId }).then((cart) => { return cart }).catch((err) =>console.error(err))
     
     let getOrder = await Order.find({cart: getCart}).then((order) => {return order}).catch((err) => console.error(err))
     

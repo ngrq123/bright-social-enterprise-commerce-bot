@@ -2,35 +2,16 @@ var router = require('express').Router();
 // For testing endpoints
 import { createOrder, getOrder} from '../../models/Order';
 import { checkUser, createUser} from '../../models/User';
+import { createCart, checkCart, deleteCart, addItemToCart, removeAllItemsFromCart } from '../../models/Cart';
 
 router.get("/", async (req,res) =>{
     let body = req.body;
-    // getAllProducts().then(function(products){
-    // console.log(products);
-    // });
-    // getProductByType("Baker").then(function(products){
-    // console.log(products);
-    // });
-    // getProductByID('3060724697352196').then(function(prod){
-        // console.log(prod);
-    // });
-    // getProductPrice('3060724697352196').then(function(price){
-        // console.log(price);
-    // });
-    // getProductDesc('3060724697352196').then(function(description){
-        // console.log(description);
-    // });
-    // getProductsByName('Earl Grey Sunflower Seeds Cookies').then(function(prod){
-        // console.log(prod);
-    // });
-    // getProductByNameVar('Earl Grey Sunflower Seeds Cookies','Gift box').then(function(prod){
-    //     console.log(prod);
-    // });
-    let user = (await checkUser("2750198608418534"))[0];
-    console.log(user)
-    console.log(createOrder(user));
-    console.log(getOrder(user));
-    res.status(200).send("Success :)");
+    
+    // createCart(2750198608418534, 3060724697352196, 1)
+    // checkCart(2750198608418534)
+    // deleteCart(2750198608418534, "12f8cbf9-e7bd-49b1-8789-33ce0d54b93d")
+    // addItemToCart("392a4341-a3a4-415a-97de-0a9b1b9920c4", 3060724697352196, 1)
+    // removeAllItemsFromCart("392a4341-a3a4-415a-97de-0a9b1b9920c4")
     
 });
 
