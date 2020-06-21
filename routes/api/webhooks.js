@@ -4,6 +4,7 @@ let router = require('express').Router();
 import { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar } from '../../models/Product';
 import { checkUser, createUser } from '../../models/User';
 import { getName } from '../../helpers/fbhelper';
+import { checkCart, addItemToCart, createCart } from '../../models/Cart';
 
 let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
@@ -131,8 +132,11 @@ async function handlePostback(sender_psid, received_postback) {
     if (postback_intent === "recommendation") {
         response = await generateRecommendationsResponse([]);
     } else if (postback_intent === "cart_add") {
+        // Get product
+        let product = (await getProductByID(postback_content))[0];
+
         // Add to cart
-        response = generateAddCartResponse(sender_psid, postback_content, 1);
+        response = await generateAddCartResponse(sender_psid, product, 1);
     } else if (postback_intent === "cart_view") {
         response = await generateViewCartResponse(sender_psid);
     } else if (postback_intent === "enquiry_delivery") {
@@ -212,7 +216,7 @@ function callSendAPI(sender_psid, response) {
 }
 
 // Process text message and returns response object to handleMessage()
-function processMessage(sender_psid, message) {
+async function processMessage(sender_psid, message) {
     // NLP: https://developers.facebook.com/docs/messenger-platform/built-in-nlp
     let entities = message.nlp["entities"];
 
@@ -316,13 +320,23 @@ function processMessage(sender_psid, message) {
                     let quantity = entities["number"]
                         ? entities["number"][0]["value"]
                         : 1;
-                    response = generateAddCartResponse(
-                        sender_psid,
-                        product_name,
-                        quantity
-                    );
+                    let products = await getProductsByName(product_name);
+
+                    if (products.length === 0) {
+                        response = generateResponseFromMessage("We do not have this product: " + product_name);
+                    } if (products.length === 1) {
+                        // Product has no variation
+                        response = await generateAddCartResponse(
+                            sender_psid,
+                            products[0],
+                            quantity
+                        );
+                    } else {
+                        response = await generateSelectProductVariationResponse(products);
+                    }
+                    
                 } else if (intent_subcategory === "view") {
-                    response = generateViewCartResponse(sender_psid);
+                    response = await generateViewCartResponse(sender_psid);
                 }
                 break;
 
@@ -416,7 +430,7 @@ async function generateRecommendationsResponse(product_types) {
                             {
                                 type: "postback",
                                 title: "Add to Cart",
-                                payload: `cart_add ${product["title"]}`
+                                payload: `cart_add ${product.pid}`
                             }
                         ]
                     };
@@ -427,9 +441,42 @@ async function generateRecommendationsResponse(product_types) {
     return response;
 }
 
+// Response on product variation
+async function generateSelectProductVariationResponse(products) {
+    let product_name = products[0].title;
+
+    return {
+        attachment: {
+            type: "template",
+            payload: {
+                template_type: "button",
+                text: `Select the variation for ${product_name}`,
+                buttons: products.map(p => {
+                    return {
+                        type: "postback",
+                        title: p.pattern,
+                        payload: `cart_add ${p.pid}`
+                    }
+                })
+            }
+        }
+    };
+}
+
 // Response on confirmation of product added to cart and quick replies
-function generateAddCartResponse(sender_psid, product_name, quantity) {
+async function generateAddCartResponse(sender_psid, product, quantity) {
+    console.log(product);
+    
     // TODO: Add product to cart in db
+    let user = (await checkUser(sender_psid))[0];
+    let cart = await checkCart(user._id);
+
+    if (cart.length === 0) {
+        cart = await createCart(user._id, product.pid, quantity);
+        console.log(cart);
+    } else {
+
+    }
 
     return {
         text: `Added ${quantity} ${product_name} to cart.`,
@@ -454,9 +501,16 @@ function generateAddCartResponse(sender_psid, product_name, quantity) {
 }
 
 // Response on generic template carousel for cart
-function generateViewCartResponse(sender_psid) {
+async function generateViewCartResponse(sender_psid) {
     // TODO: Get cart from db
+    let user = await checkUser(sender_psid);
+    let cart = await checkCart(user[0]._id);
+    
+    if (cart.length === 0) {
+        return generateResponseFromMessage("Your cart is empty.");
+    }
 
+    console.log(cart);
 
     let products = [
         {
@@ -499,7 +553,7 @@ function generateViewCartResponse(sender_psid) {
                             {
                                 type: "postback",
                                 title: "Add 1",
-                                payload: `cart_add ${product["name"]}`
+                                payload: `cart_add ${product.pid}`
                             },
                             {
                                 type: "postback",
