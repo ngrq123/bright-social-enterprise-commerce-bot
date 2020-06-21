@@ -414,7 +414,7 @@ async function generateRecommendationsResponse(product_types) {
                 elements: products.map(product => {
                     return {
                         title: product["title"],
-                        subtitle: `$${product["price"]}`,
+                        subtitle: (product.pattern) ? `(${product["pattern"]}) $${product["price"]}` : `$${product["price"]}`,
                         image_url: product["image_link"],
                         buttons: [
                             {
@@ -488,7 +488,8 @@ function generateViewCartResponse(sender_psid) {
             price: 3.5,
             url:
                 "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            quantity: 1
+            quantity: 1,
+            pattern: "Bag"
         }
     ];
     let response = {
@@ -499,7 +500,7 @@ function generateViewCartResponse(sender_psid) {
                 elements: products.map(product => {
                     return {
                         title: product["name"],
-                        subtitle: `Qty: ${product["quantity"]} ($${product["price"]} each)`,
+                        subtitle: (product.pattern) ? `${product.pattern}, Qty: ${product["quantity"]} ($${product["price"]} each)` : `Qty: ${product["quantity"]} ($${product["price"]} each)`,
                         image_url: product["url"],
                         buttons: [
                             {
@@ -516,7 +517,19 @@ function generateViewCartResponse(sender_psid) {
                     };
                 })
             }
-        }
+        },
+        quick_replies: [
+            {
+                content_type: "text",
+                title: "View more products",
+                payload: "recommendation"
+            },
+            {
+                content_type: "text",
+                title: "Checkout",
+                payload: `checkout`
+            }
+        ]
     };
     return response;
 }
