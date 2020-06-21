@@ -294,7 +294,8 @@ async function processMessage(sender_psid, message) {
                             "All net revenue earned from the sale of our products and services go towards paying a monthly allowance for our clients' work, as well as their lunch expenses while undergoing training.",
                         manufacturer:
                             "We support adults with intellectual disabilities. We started a range of social enterprise projects to provide alternative work engagement for our adult trainees.",
-                        products: "We sell craft and baker goods."
+                        products: "We sell craft and baker goods.",
+                        safety: "Our cookies are made by our clients in a clean and sanitised environment. The cookies are safe to consume before the expiry date that is printed on the packaging."
                     };
                     // Loop through message keys (entity) and find if entity is in entities
                     Object.keys(messages).forEach(entity => {
@@ -689,7 +690,7 @@ async function generateProductEnquiryResponse(product_name, attribute) {
         return generateResponseFromMessage("The " + attribute + " of our " + product_name + " is " + results);
     }
     
-    return generateResponseFromMessage("We have the following " + attribute + "s for our " + product_name + ": " + results.join(", "));
+    return generateResponseFromMessage("We have the following variations for our " + product_name + ": " + results.join(", "));
 }
 
 // Response on prododuct enquiry
