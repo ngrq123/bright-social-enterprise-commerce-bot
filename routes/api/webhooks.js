@@ -152,22 +152,7 @@ async function handlePostback(sender_psid, name, received_postback) {
         );
         response = generateProductEnquiryResponse(product, attribute);
     } else if (postback_intent === "checkout") {
-        response = {
-            attachment: {
-                type: "template",
-                payload: {
-                    template_type: "button",
-                    text: "Click on the button below to pay.",
-                    buttons: [
-                        {
-                            type: "postback",
-                            title: "Pay",
-                            payload: "paid"
-                        }
-                    ]
-                }
-            }
-        };
+        response = generateCheckoutResponse();
     } else if (postback_intent === "paid") {
         response = {
             attachment: {
@@ -337,6 +322,10 @@ function processMessage(sender_psid, message) {
                 } else if (intent_subcategory === "view") {
                     response = generateViewCartResponse(sender_psid);
                 }
+                break;
+
+            case "checkout":
+                response = generateCheckoutResponse();
                 break;
 
             default:
@@ -532,6 +521,25 @@ function generateViewCartResponse(sender_psid) {
         ]
     };
     return response;
+}
+
+function generateCheckoutResponse() {
+    return {
+        attachment: {
+            type: "template",
+            payload: {
+                template_type: "button",
+                text: "Click on the button below to pay.",
+                buttons: [
+                    {
+                        type: "postback",
+                        title: "Pay",
+                        payload: "paid"
+                    }
+                ]
+            }
+        }
+    };
 }
 
 // Response on receipt template for latest confirmed order
