@@ -124,12 +124,17 @@ function handlePostback(sender_psid, received_postback) {
     );
 
     // Set the response based on the postback intent
-    if (postback_intent === "cart_add") {
+    if (postback_intent === "recommendation") {
+        response = generateRecommendationsResponse([]);
+    } else if (postback_intent === "cart_add") {
         // Add to cart
         response = generateAddCartResponse(sender_psid, postback_content, 1);
     } else if (postback_intent === "cart_view") {
         response = generateViewCartResponse(sender_psid);
+    } else if (postback_intent === "enquiry_order") {
+        response = generateOrderEnquiryResponse(sender_psid);
     } else if (postback_intent === "enquiry_product") {
+        postback_content = postback_content.length > 0 ? postback_content : "products";
         response = generateResponseFromMessage(
             `What would you like to know about our ${postback_content}?`
         );
@@ -317,6 +322,8 @@ function processMessage(sender_psid, message) {
                             "We deliver islandwide. The average delivery time takes 5-7 working days."
                         );
                     }
+                } else if (intent_subcategory === "order") {
+                    // Handle order enquiry
                 }
                 break;
 
@@ -349,10 +356,27 @@ function processMessage(sender_psid, message) {
         return response;
     } else if (is_greeting) {
         // Message has no intent, just greeting
-        // TODO: Add quick replies of chatbot functionalities (recommendations, check order status, etc.)
-        return generateResponseFromMessage(
-            "Hi there! Welcome to Bright. How can I help you?"
-        );
+        // Quick replies of chatbot functionalities (recommendations, check order status, product enquiry)
+        return {
+            text: "Hi there! Welcome to Bright. How can I help you?",
+            quick_replies: [
+                {
+                    content_type: "text",
+                    title: "Recommend products",
+                    payload: "recommendation"
+                },
+                {
+                    content_type: "text",
+                    title: "Check order status",
+                    payload: "enquiry_order"
+                },
+                {
+                    content_type: "text",
+                    title: "Enquire product",
+                    payload: "enquiry_product"
+                }
+            ]
+        };
     }
 
     // No intent nor greeting
@@ -416,7 +440,12 @@ function generateAddCartResponse(sender_psid, product_name, quantity) {
         quick_replies: [
             {
                 content_type: "text",
-                title: "View Cart",
+                title: "View more products",
+                payload: "recommendation"
+            },
+            {
+                content_type: "text",
+                title: "View cart",
                 payload: `cart_view`
             },
             {
@@ -557,7 +586,7 @@ function generateReceiptResponse(sender_psid) {
     return response;
 }
 
-// Response on prododuct enquiry
+// Response on product enquiry
 function generateProductEnquiryResponse(product, attribute) {
     // TODO: Get product from db, create message and generate response
     return generateResponseFromMessage("You are enquiring about the " + attribute + " of " + product);
