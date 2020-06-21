@@ -49,16 +49,7 @@ async function createCart(userId, pid, quantity) {
         const query_param_userId = user._id;
         const user_cartId = newCart.uid;
 
-        User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true }, function (err, result) {
-            if (err) {
-                // res.send(err)
-                console.error(err)
-            }
-            else {
-                // res.send(result)
-                console.log(result)
-            }
-        })
+        User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true }).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
     }).catch(err => { console.error(err); res.send(err) })
     let setCart = await newCart.save().then(doc => { console.log(doc); }).catch(err => { console.error(err); });
 
@@ -92,15 +83,7 @@ async function addItemToCart(cartId, pid, quantity) {
     let addItem = await Cart.findOneAndUpdate(
         { uid: cartId },
         { $push: { items: itemData } },
-        { new: true },
-        (error, success) => {
-            if (error) {
-                console.error(error);
-            } else {
-                console.log(success);
-            }
-        }
-    )
+        { new: true }).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
 
     return addItem
 
@@ -110,16 +93,8 @@ async function removeAllItemsFromCart(cartId){
     let deleteItemsFromCart = await Cart.findOneAndUpdate(
         { uid: cartId },
         { items: [] },
-        { new: true },
-        (error, success) => {
-            if (error) {
-                console.error(error);
-            } else {
-                console.log(success);
-            }
-        }
-
-    )
+        { new: true }
+    ).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
     
     return deleteItemsFromCart;
 }
@@ -132,25 +107,8 @@ async function deleteCart(userId, cartId) {
         const query_param_userId = user._id;
         const user_cartId = "";
 
-        User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true }, function (err, result) {
-            if (err) {
-           
-                console.error(err)
-            }
-            else {
-          
-                console.log(result)
-            }
-        })
-    }).catch(err => { console.error(err); })
-    await Cart.findOneAndDelete({ uid: cartId },
-        (error, success) => {
-        if (error) {
-            console.error(error);
-        } else {
-            console.log(success);
-        }
-    })
+        User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true }).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
+    await Cart.findOneAndDelete({ uid: cartId }).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
 }
 
 export { createCart, checkCart, addItemToCart, removeAllItemsFromCart, deleteCart };
