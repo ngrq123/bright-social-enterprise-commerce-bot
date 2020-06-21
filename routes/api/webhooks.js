@@ -6,6 +6,7 @@ import { checkUser, createUser } from '../../models/User';
 import { getName } from '../../helpers/fbhelper';
 
 let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+
 //
 //
 //
@@ -136,8 +137,8 @@ function handlePostback(sender_psid, name, received_postback) {
         response = generateAddCartResponse(sender_psid, postback_content, 1);
     } else if (postback_intent === "cart_view") {
         response = generateViewCartResponse(sender_psid);
-    } else if (postback_intent === "enquiry_order") {
-        response = generateOrderEnquiryResponse(sender_psid);
+    } else if (postback_intent === "enquiry_delivery") {
+        response = generateDeliveryEnquiryResponse(sender_psid);
     } else if (postback_intent === "enquiry_product") {
         postback_content = postback_content.length > 0 ? postback_content : "products";
         response = generateResponseFromMessage(
@@ -373,7 +374,7 @@ function processMessage(sender_psid, message) {
                 {
                     content_type: "text",
                     title: "Check order status",
-                    payload: "enquiry_order"
+                    payload: "enquiry_delivery"
                 },
                 {
                     content_type: "text",
@@ -556,13 +557,13 @@ function generateReceiptResponse(sender_psid, name) {
             type: "template",
             payload: {
                 template_type: "receipt",
-                recipient_name: "<CUSTOMER_NAME>", // Mandatory field
-                order_number: "<ORDER_NUMBER>", // Mandatory field
+                recipient_name: name,
+                order_number: "<ORDER_NUMBER>", // TODO: Retrieve and add order number
                 currency: "SGD",
                 payment_method: "PayPal",
                 order_url: "",
                 address: {
-                    street_1: "9 Straits View", // Mandatory field
+                    street_1: "9 Straits View",
                     city: "Singapore",
                     postal_code: "018937",
                     state: "SG",
