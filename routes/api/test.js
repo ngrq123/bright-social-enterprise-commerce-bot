@@ -1,7 +1,9 @@
 var router = require('express').Router();
 // For testing endpoints
+import { createOrder, getOrder} from '../../models/Order';
+import { checkUser, createUser} from '../../models/User';
 
-router.get("/", (req,res) =>{
+router.get("/", async (req,res) =>{
     let body = req.body;
     // getAllProducts().then(function(products){
     // console.log(products);
@@ -24,6 +26,10 @@ router.get("/", (req,res) =>{
     // getProductByNameVar('Earl Grey Sunflower Seeds Cookies','Gift box').then(function(prod){
     //     console.log(prod);
     // });
+    let user = (await checkUser("2750198608418534"))[0];
+    console.log(user)
+    console.log(createOrder(user));
+    console.log(getOrder(user));
     res.status(200).send("Success :)");
     
 });
