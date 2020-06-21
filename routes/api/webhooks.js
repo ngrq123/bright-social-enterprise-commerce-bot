@@ -309,25 +309,7 @@ function processMessage(sender_psid, message) {
                         }
                     });
                 } else if (intent_subcategory === "delivery") {
-                    if (entities["status"]) {
-                        // TODO: Order status
-                        response = generateResponseFromMessage(
-                            "Your latest order is <status>."
-                        );
-                    } else if (entities["estimated_arrival"]) {
-                        // TODO: Order estimated arrival
-                        response = generateResponseFromMessage(
-                            "The average delivery time takes 5-7 working days. Your ordered was sent on <date>. It is estimated to arrive on <date + 7 working days>."
-                        );
-                    } else if (entities["cost"]) {
-                        response = generateResponseFromMessage(
-                            "It is a flat fee of $2 for every order."
-                        );
-                    } else {
-                        response = generateResponseFromMessage(
-                            "We deliver islandwide. The average delivery time takes 5-7 working days."
-                        );
-                    }
+                    response = generateDeliveryEnquiryResponse(sender_psid);
                 } else if (intent_subcategory === "order") {
                     // Handle order enquiry
                 }
@@ -612,6 +594,32 @@ async function generateProductTypeEnquiryResponse(product_type, attribute) {
             }
         })
     };
+}
+
+function generateDeliveryEnquiryResponse(sender_psid) {
+    if (entities["status_order"]) {
+        // TODO: Order status
+        return generateResponseFromMessage(
+            "Your latest order is <status>."
+        );
+    }
+    
+    if (entities["estimated_arrival"]) {
+        // TODO: Order estimated arrival
+        return generateResponseFromMessage(
+            "The average delivery time takes 5-7 working days. Your ordered was sent on <date>. It is estimated to arrive on <date + 7 working days>."
+        );
+    }
+    
+    if (entities["cost"]) {
+        return generateResponseFromMessage(
+            "It is a flat fee of $2 for every order."
+        );
+    }
+
+    return generateResponseFromMessage(
+        "We deliver islandwide. The average delivery time takes 5-7 working days."
+    );
 }
 
 module.exports = router;
