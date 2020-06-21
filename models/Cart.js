@@ -43,7 +43,7 @@ async function createCart(userId, pid, quantity) {
         }]
         // totalPrice: totalPrice
     })
-    await User.findById(userId).then((user) => {
+    await User.findOne({id: userId} ).then((user) => {
         if (!user) { return res.status(401).send('User doesnt exist!'); }
 
         const query_param_userId = user._id;
@@ -51,16 +51,16 @@ async function createCart(userId, pid, quantity) {
 
         User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true }, function (err, result) {
             if (err) {
-                res.send(err)
+                // res.send(err)
                 console.error(err)
             }
             else {
-                res.send(result)
+                // res.send(result)
                 console.log(result)
             }
         })
     }).catch(err => { console.error(err); res.send(err) })
-    let setCart = await newCart.save().then(doc => { console.log(doc); res.send(doc) }).catch(err => { console.error(err); res.send(err) });
+    let setCart = await newCart.save().then(doc => { console.log(doc); }).catch(err => { console.error(err); });
 
     return setCart
 }
@@ -68,7 +68,7 @@ async function createCart(userId, pid, quantity) {
 //Check for user active cart
 async function checkCart(userId) {
 
-    let getCartId = await User.findById(userId).then((user) => {
+    let getCartId = await User.findOne({id: userId}).then((user) => {
         if (!user) { return res.status(401).send('User doesnt exist!'); }
 
         const cartId = user.cartId;
@@ -76,7 +76,7 @@ async function checkCart(userId) {
         return cartId
     })
 
-    let getCart = await Cart.find({ uid: getCartId }).then((result) => { return result }).catch((err) => console.error(err))
+    let getCart = await Cart.find({ uid: getCartId }).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
 
     return getCart
 }
@@ -87,7 +87,6 @@ async function addItemToCart(cartId, pid, quantity) {
         quantity: quantity
     }
     
-    let getCart = await Cart.find({ uid: getCartId }).then((result) => { return result }).catch((err) => console.error(err));
     
     
     let addItem = await Cart.findOneAndUpdate(
@@ -130,23 +129,23 @@ async function removeItemFromCart(cartId, pid){
 
 async function deleteCart(userId, cartId) {
 
-    await User.find({id: userId}).then((user) => {
+    await User.findOne({id: userId}).then((user) => {
         if (!user) { return res.status(401).send('User doesnt exist!'); }
 
         const query_param_userId = user._id;
-        const user_cartId = null;
+        const user_cartId = "";
 
         User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true }, function (err, result) {
             if (err) {
-                res.send(err)
+           
                 console.error(err)
             }
             else {
-                res.send(result)
+          
                 console.log(result)
             }
         })
-    }).catch(err => { console.error(err); res.send(err) })
+    }).catch(err => { console.error(err); })
     await Cart.findOneAndDelete({ uid: cartId },
         (error, success) => {
         if (error) {
