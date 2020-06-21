@@ -106,25 +106,22 @@ async function addItemToCart(cartId, pid, quantity) {
 
 }
 
-async function removeItemFromCart(cartId, pid){
-    let getCart = await Cart.find({ uid: getCartId }).then((result) => { return result }).catch((err) => console.error(err));
-    
-    products = getcart.items;
-    
-    newProducts = [];
-    
-    for (var i =0; i<products.length; i++){
-        product = products[i];
-        if (product.pid !== pid){
-            newProducts.push(product);
+async function removeAllItemsFromCart(cartId){
+    let deleteItemsFromCart = await Cart.findOneAndUpdate(
+        { uid: cartId },
+        { items: [] },
+        { new: true },
+        (error, success) => {
+            if (error) {
+                console.error(error);
+            } else {
+                console.log(success);
+            }
         }
-    }
+
+    )
     
-    getCart.items = newProducts;
-    
-    let updateCart = getCart.save().then(doc => { console.log(doc); res.send(doc) }).catch(err => { console.error(err); res.send(err) });
-    
-    return updateCart;
+    return deleteItemsFromCart;
 }
 
 async function deleteCart(userId, cartId) {
@@ -156,4 +153,4 @@ async function deleteCart(userId, cartId) {
     })
 }
 
-export { createCart, checkCart, addItemToCart, removeItemFromCart, deleteCart };
+export { createCart, checkCart, addItemToCart, removeAllItemsFromCart, deleteCart };
