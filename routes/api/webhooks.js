@@ -1,8 +1,11 @@
-var mongoose = require('mongoose');
-var router = require('express').Router();
-// import { getAllProducts, getProductByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar } from '../../models/Product';
+let request = require('request');
+let mongoose = require('mongoose');
+let router = require('express').Router();
+import { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar } from '../../models/Product';
 import { checkUser, createUser } from '../../models/User';
 import { getName } from '../../helpers/fbhelper';
+
+let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 //
 //
 //
@@ -54,22 +57,24 @@ router.post("/webhook", (req, res) => {
             // Check if the event is a message or postback and
             // pass the event to the appropriate handler function
             if (webhook_event.message) {
+                
+                let name = getName(PAGE_ACCESS_TOKEN, sender_psid, (name) => { return name });
+
+                checkUser(sender_psid, name)
+                    .then(function (user) {
+                        if (user.length === 0) {
+                            createUser(sender_psid, response);
+                        }
+                    });
+
                 if (webhook_event.message.quick_reply) {
-                    handlePostback(sender_psid, webhook_event.message.quick_reply);
+                    handlePostback(sender_psid, name, webhook_event.message.quick_reply);
                 } else {
                     handleMessage(sender_psid, webhook_event.message);
                 }
 
-                getName(PAGE_ACCESS_TOKEN, sender_psid, function (response) {
-                    checkUser(sender_psid, response).then(function (user) {
-                        if (user.length == 0) {
-                            createUser(sender_psid, response);
-                        }
-                    });
-                });
-
             } else if (webhook_event.postback) {
-                handlePostback(sender_psid, webhook_event.postback);
+                handlePostback(sender_psid, name, webhook_event.postback);
             }
         });
 
@@ -110,7 +115,7 @@ async function handleMessage(sender_psid, received_message) {
 }
 
 // Handles messaging_postbacks events
-function handlePostback(sender_psid, received_postback) {
+function handlePostback(sender_psid, name, received_postback) {
     let response;
 
     // Get the payload for the postback
@@ -180,7 +185,7 @@ function handlePostback(sender_psid, received_postback) {
             }
         };
     } else if (postback_intent === "receipt_view") {
-        response = generateReceiptResponse(sender_psid);
+        response = generateReceiptResponse(sender_psid, name);
     }
 
     if (response == null) {
@@ -517,7 +522,7 @@ function generateViewCartResponse(sender_psid) {
 }
 
 // Response on receipt template for latest confirmed order
-function generateReceiptResponse(sender_psid) {
+function generateReceiptResponse(sender_psid, name) {
     // TODO: Get latest order from database
     let products = [
         {
