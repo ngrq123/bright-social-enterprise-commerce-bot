@@ -9,6 +9,7 @@ Order:
 1) orderID (PK)
 2) userID
 3) trackingNum
+
 4) orderStatus --> Store status as 1,2,3 "tobedelviered","Courier","Delivered"
 5) orderDateTime
 6) orderDetails --> (json) [{productName:"",productID:"",quantity:"" ,price:"" }]
@@ -21,7 +22,7 @@ TBD:
 
 Flow:
 General Enquiry (KIV)
-Recoomendations
+Recommendations
 Product Enquiries
 Cart
 Payment
@@ -51,3 +52,12 @@ ProductAttributes:
 1) productID
 2) allergens --> []
 3) packaging --> []
+4) weight
+5) flavour
+
+ingredient
+weight
+flavor
+color
+
+getProductByAllergens

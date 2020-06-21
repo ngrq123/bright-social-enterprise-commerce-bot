@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-var Float = require('mongoose-float').loadType(mongoose);
 
 const productsSchema = new mongoose.Schema({
     id: String,
@@ -17,7 +16,11 @@ const productsSchema = new mongoose.Schema({
     color: String,
     pattern: String,
     product_type: String,
-    allergens: String
+    allergens: Array,
+    ingredients: Array,
+    weight: String,
+    flavor: String,
+    color: String
 });
 
 const Product = mongoose.model('Product',productsSchema);
