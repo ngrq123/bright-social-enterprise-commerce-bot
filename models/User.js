@@ -15,7 +15,7 @@ function createUser(fbid,name){
         id:fbid,
         name:name
     });
-    newUser.save().then(doc => console.log(doc)).catch(err => console.log(err));
+    return newUser.save().then(doc => doc).catch(err => console.log(err));
 }
 
 function checkUser(fbid){

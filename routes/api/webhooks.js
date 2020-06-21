@@ -55,29 +55,25 @@ router.post("/webhook", (req, res) => {
             let sender_psid = webhook_event.sender.id;
             // console.log("Sender PSID: " + sender_psid);
 
-            // Get the sender's name
-            let name = await getName(PAGE_ACCESS_TOKEN, sender_psid);
-            console.log(`Name: ${name}`);
-
-            checkUser(sender_psid, name)
-                .then(function (user) {
-                    if (user.length === 0) {
-                        createUser(sender_psid, name);
-                    }
-                });
-
+            let user = await checkUser(sender_psid);
+            if (user.length === 0) {
+                // Get the sender's name
+                let name = await getName(PAGE_ACCESS_TOKEN, sender_psid);
+                user = await createUser(sender_psid, name);
+            }
+            
             // Check if the event is a message or postback and
             // pass the event to the appropriate handler function
             if (webhook_event.message) {
                 
                 if (webhook_event.message.quick_reply) {
-                    handlePostback(sender_psid, name, webhook_event.message.quick_reply);
+                    handlePostback(sender_psid, webhook_event.message.quick_reply);
                 } else {
                     handleMessage(sender_psid, webhook_event.message);
                 }
 
             } else if (webhook_event.postback) {
-                handlePostback(sender_psid, name, webhook_event.postback);
+                handlePostback(sender_psid, webhook_event.postback);
             }
         });
 
@@ -118,7 +114,7 @@ async function handleMessage(sender_psid, received_message) {
 }
 
 // Handles messaging_postbacks events
-async function handlePostback(sender_psid, name, received_postback) {
+async function handlePostback(sender_psid, received_postback) {
     let response;
 
     // Get the payload for the postback
@@ -138,7 +134,7 @@ async function handlePostback(sender_psid, name, received_postback) {
         // Add to cart
         response = generateAddCartResponse(sender_psid, postback_content, 1);
     } else if (postback_intent === "cart_view") {
-        response = generateViewCartResponse(sender_psid);
+        response = await generateViewCartResponse(sender_psid);
     } else if (postback_intent === "enquiry_delivery") {
         response = generateDeliveryEnquiryResponse(sender_psid);
     } else if (postback_intent === "enquiry_product") {
@@ -173,7 +169,7 @@ async function handlePostback(sender_psid, name, received_postback) {
             }
         };
     } else if (postback_intent === "receipt_view") {
-        response = generateReceiptResponse(sender_psid, name);
+        response = await generateReceiptResponse(sender_psid);
     }
 
     if (response == null) {
@@ -460,6 +456,8 @@ function generateAddCartResponse(sender_psid, product_name, quantity) {
 // Response on generic template carousel for cart
 function generateViewCartResponse(sender_psid) {
     // TODO: Get cart from db
+
+
     let products = [
         {
             id: 1,
@@ -549,7 +547,11 @@ function generateCheckoutResponse() {
 }
 
 // Response on receipt template for latest confirmed order
-function generateReceiptResponse(sender_psid, name) {
+async function generateReceiptResponse(sender_psid) {
+    // Get user's name
+    let user = await checkUser(sender_psid);
+    let name = user[0].name;
+
     // TODO: Get latest order from database
     let products = [
         {
