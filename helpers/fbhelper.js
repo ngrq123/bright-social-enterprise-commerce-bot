@@ -1,29 +1,17 @@
 //Gets users name from facebook graph api
-const request = require("request");
+const fetch = require('node-fetch');
 const CATLOG_ID = process.env.CATLOG_ID;
 const fields = "currency,availability,condition,id,inventory,image_url,name,price,retailer_id,retailer_product_group_id,description,custom_label_0,pattern,product_type,color,url,product_group";
 const uri = "https://graph.facebook.com/v7.0/"
 
-function getName(PAGE_ACCESS_TOKEN,sender_psid,callback){
-    var name = "Empty";
-    request({
-        url:uri + sender_psid,
-        qs:{
-            access_token: PAGE_ACCESS_TOKEN,
-            fields: "first_name",
-        },
-        method:"GET"
-    }, function(error,response,body){
-        if (error){
-            console.log(error)
-        }else{
-            var bodyObj = JSON.parse(body);
-            name = bodyObj.first_name;
-            console.log("Name: " + name);
-            return callback(name)
-        }
-    });
-    return name;
+async function getName(PAGE_ACCESS_TOKEN,sender_psid,callback){
+    let response = await fetch(uri + sender_psid + "?fields=first_name&access_token=" + PAGE_ACCESS_TOKEN);
+    if (response.ok) {
+        let body = await response.json();
+        return body.first_name;
+    }
+    
+    return "";
 }
 
 //Get all products with their ID from Facebook

@@ -45,7 +45,7 @@ router.post("/webhook", (req, res) => {
     // Checks this is an event from a page subscription
     if (body.object === "page") {
         // Iterates over each entry - there may be multiple if batched
-        body.entry.forEach(function (entry) {
+        body.entry.forEach(async function (entry) {
             // Gets the message. entry.messaging is an array, but
             // will only ever contain one message, so we get index 0
             let webhook_event = entry.messaging[0];
@@ -55,19 +55,21 @@ router.post("/webhook", (req, res) => {
             let sender_psid = webhook_event.sender.id;
             // console.log("Sender PSID: " + sender_psid);
 
+            // Get the sender's name
+            let name = await getName(PAGE_ACCESS_TOKEN, sender_psid);
+            console.log(`Name: ${name}`);
+
+            checkUser(sender_psid, name)
+                .then(function (user) {
+                    if (user.length === 0) {
+                        createUser(sender_psid, name);
+                    }
+                });
+
             // Check if the event is a message or postback and
             // pass the event to the appropriate handler function
             if (webhook_event.message) {
                 
-                let name = getName(PAGE_ACCESS_TOKEN, sender_psid, (name) => { return name });
-
-                checkUser(sender_psid, name)
-                    .then(function (user) {
-                        if (user.length === 0) {
-                            createUser(sender_psid, response);
-                        }
-                    });
-
                 if (webhook_event.message.quick_reply) {
                     handlePostback(sender_psid, name, webhook_event.message.quick_reply);
                 } else {
@@ -140,7 +142,7 @@ async function handlePostback(sender_psid, name, received_postback) {
     } else if (postback_intent === "enquiry_delivery") {
         response = generateDeliveryEnquiryResponse(sender_psid);
     } else if (postback_intent === "enquiry_product") {
-        postback_content = (payload.indexOf(" ") === -1) ? "products": postback_intent;
+        postback_content = (payload.indexOf(" ") === -1) ? "products": postback_content;
         response = generateResponseFromMessage(
             `What would you like to know about our ${postback_content}?`
         );

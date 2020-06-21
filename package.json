@@ -16,6 +16,7 @@
     "mongoose-float": "^1.0.4",
     "mongoose-unique-validator": "^2.0.3",
     "request": "^2.88.2",
+    "node-fetch": "2.6.0",
     "uuid": "^8.1.0"
   },
   "scripts": {
