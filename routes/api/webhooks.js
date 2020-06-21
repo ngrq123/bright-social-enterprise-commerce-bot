@@ -116,7 +116,7 @@ async function handleMessage(sender_psid, received_message) {
 }
 
 // Handles messaging_postbacks events
-function handlePostback(sender_psid, name, received_postback) {
+async function handlePostback(sender_psid, name, received_postback) {
     let response;
 
     // Get the payload for the postback
@@ -131,7 +131,7 @@ function handlePostback(sender_psid, name, received_postback) {
 
     // Set the response based on the postback intent
     if (postback_intent === "recommendation") {
-        response = generateRecommendationsResponse([]);
+        response = await generateRecommendationsResponse([]);
     } else if (postback_intent === "cart_add") {
         // Add to cart
         response = generateAddCartResponse(sender_psid, postback_content, 1);
@@ -270,7 +270,6 @@ function processMessage(sender_psid, message) {
                 }
 
                 response = generateRecommendationsResponse(product_types);
-                console.log(response);
                 break;
 
             case "enquiry":
@@ -309,7 +308,7 @@ function processMessage(sender_psid, message) {
                         }
                     });
                 } else if (intent_subcategory === "delivery") {
-                    response = generateDeliveryEnquiryResponse(sender_psid);
+                    response = generateDeliveryEnquiryResponse(sender_psid, entities);
                 } else if (intent_subcategory === "order") {
                     // Handle order enquiry
                 }
@@ -575,14 +574,26 @@ function generateReceiptResponse(sender_psid, name) {
 }
 
 // Response on product enquiry
-function generateProductEnquiryResponse(product, attribute) {
-    // TODO: Get product from db, create message and generate response
-    return generateResponseFromMessage("You are enquiring about the " + attribute + " of " + product);
+async function generateProductEnquiryResponse(product_name, attribute) {
+    // Get product from db, create message and generate response
+    let products = await getProductsByName(product_name);
+    let results = products.map(product => product[attribute]);
+    results = Array.from(new Set(results)).filter(v => v != null);
+
+    if (results.length === 0) {
+        return generateResponseFromMessage("Our " + product_name + " does not have any " + attribute + ".");
+    }
+    
+    if (results.length === 1) {
+        return generateResponseFromMessage("The " + attribute + " of our " + product_name + " is " + results);
+    }
+    
+    return generateResponseFromMessage("We have the following " + attribute + "s for our " + product_name + ": " + results.join(", "));
 }
 
 // Response on prododuct enquiry
 async function generateProductTypeEnquiryResponse(product_type, attribute) {
-    // TODO: Get product from db, create message and generate response
+    // Get product from db, create message and generate response
     let products = await getProductsByType(product_type);
     return {
         text: `Which product are you enquiring about its ${attribute}?`,
@@ -596,7 +607,7 @@ async function generateProductTypeEnquiryResponse(product_type, attribute) {
     };
 }
 
-function generateDeliveryEnquiryResponse(sender_psid) {
+function generateDeliveryEnquiryResponse(sender_psid, entities = {}) {
     if (entities["status_order"]) {
         // TODO: Order status
         return generateResponseFromMessage(
