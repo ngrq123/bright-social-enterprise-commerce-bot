@@ -152,7 +152,7 @@ async function handlePostback(sender_psid, name, received_postback) {
             postback_content.indexOf(" ") + 1,
             postback_content.length
         );
-        response = generateProductEnquiryResponse(product, attribute);
+        response = await generateProductEnquiryResponse(product, attribute);
     } else if (postback_intent === "checkout") {
         response = generateCheckoutResponse();
     } else if (postback_intent === "paid") {
@@ -286,6 +286,10 @@ function processMessage(sender_psid, message) {
                     }
                 } else if (intent_subcategory === "general") {
                     let messages = {
+                        organisation: "Bright is a social enterprise where we provide vocational training to adults with intellectual disabilities.\n\n" +
+                            "We started a range of social enterprise projects to provide alternative work engagement opportunities for our adult trainees. " + 
+                            "Some of the projects began as therapy programmes which encourage the development of fine motor skills; others provide a realistic vocational training environment.\n\n" +
+                            "All net revenue earned from the sale of our products and services go towards paying a monthly allowance for our clients' work, as well as their lunch expenses while undergoing training.",
                         profit:
                             "All net revenue earned from the sale of our products and services go towards paying a monthly allowance for our clients' work, as well as their lunch expenses while undergoing training.",
                         manufacturer:
