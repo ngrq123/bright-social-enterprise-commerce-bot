@@ -17,8 +17,8 @@ const productsSchema = new mongoose.Schema({
     color: String,
     pattern: String,
     product_type: String,
-    allergens: Array,
-    ingredients: Array,
+    allergens: [String],
+    ingredients: [String],
     weight: String,
     flavor: String,
     color: String
@@ -90,4 +90,14 @@ function getProductByNameVar(name,variation){
     });
 }
 
-export { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar };
+//get products by allergens
+function getProductsByAllergens(allergen){
+    return Product.find({allergens:allergen}).then(function(products){
+        return products;
+    }).catch(function(err){
+        console.log(err);
+        return [];
+    });
+}
+
+export { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar, getProductsByAllergens };
