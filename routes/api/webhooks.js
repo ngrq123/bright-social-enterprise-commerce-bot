@@ -412,14 +412,22 @@ async function generateRecommendationsResponse(product_types) {
         return generateResponseFromMessage("We do not have any products of type " + product_types.join(", "));
     }
 
+    // Merge product variations
+    let products_merged = products.reduce((acc, p) => {
+        acc[p.title] = [...acc[p.title] || [], p];
+        return acc;
+    }, {});
+
     let response = {
         attachment: {
             type: "template",
             payload: {
                 template_type: "generic",
-                elements: products.map(product => {
+                elements: Object.keys(products_merged).map(title => {
+                    let product = products_merged[title][Math.floor(Math.random() * products_merged[title].length)];
                     return {
                         title: product["title"],
+                        // Recommend random variation
                         subtitle: (product.pattern) ? `(${product["pattern"]}) $${product["price"]}` : `$${product["price"]}`,
                         image_url: product["image_link"],
                         buttons: [
@@ -427,10 +435,10 @@ async function generateRecommendationsResponse(product_types) {
                                 type: "postback",
                                 title: "Learn More",
                                 payload: `enquiry_product ${product["title"]}`
-                            },
+                            }, 
                             {
                                 type: "postback",
-                                title: "Add to Cart",
+                                title: `Add to Cart`,
                                 payload: `cart_add ${product.pid}`
                             }
                         ]
