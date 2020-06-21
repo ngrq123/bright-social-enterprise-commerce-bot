@@ -140,7 +140,7 @@ async function handlePostback(sender_psid, name, received_postback) {
     } else if (postback_intent === "enquiry_delivery") {
         response = generateDeliveryEnquiryResponse(sender_psid);
     } else if (postback_intent === "enquiry_product") {
-        postback_content = postback_content.length > 0 ? postback_content : "products";
+        postback_content = (payload.indexOf(" ") === -1) ? "products": postback_intent;
         response = generateResponseFromMessage(
             `What would you like to know about our ${postback_content}?`
         );
@@ -286,10 +286,14 @@ function processMessage(sender_psid, message) {
                         // Handle product enquiry
                         response = generateProductEnquiryResponse(product, attribute);
                     } else if (entities["product_type"] && entities["product_attribute"]) {
-                        // Handle product type enquiry
+                        // Handle product type enquiry with attribute
                         let product_type = entities["product_type"][0]["value"];
                         let attribute = entities["product_attribute"][0]["value"];
                         response = generateProductTypeEnquiryResponse(product_type, attribute);
+                    } else if (entities["product_type"]) {
+                        // Handle product type enquiry
+                        let product_types = entities["product_type"].map(p => p["value"]);
+                        response = generateRecommendationsResponse(product_types);
                     } else {
                         response = defaultResponse;
                     }
@@ -380,12 +384,26 @@ function generateResponseFromMessage(message) {
 // Response on generic template carousel for recommendations
 async function generateRecommendationsResponse(product_types) {
     // Retrieve products to recommend based on list of product types. If product types is an empty array, recommend products of various types
-    let products;
+    let products = [];
 
     if (product_types.length === 0) {
         products = await getAllProducts();
     } else {
-        products = await getProductsByType(product_types[0]);
+        async function getProductsByTypes(product_types, products) {
+            for (let idx = 0; idx < product_types.length; idx++) {
+                let type = product_types[idx];
+                let to_add = await getProductsByType(type);
+                console.log(to_add);
+                products = await products.concat(to_add);
+            }
+            return products;
+        }
+        products = await getProductsByTypes(product_types, products);
+        products = products.reduce((acc, val) => acc.concat(val), []);
+    }
+
+    if (products.length === 0) {
+        return generateResponseFromMessage("We do not have any products of type " + product_types.join(", "));
     }
 
     let response = {
