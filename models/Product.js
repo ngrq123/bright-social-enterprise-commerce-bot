@@ -21,7 +21,8 @@ const productsSchema = new mongoose.Schema({
     ingredients: [String],
     weight: String,
     flavor: String,
-    color: String
+    color: String,
+    quantity: Float
 });
 
 const Product = mongoose.model('Product',productsSchema);
@@ -107,4 +108,14 @@ function getProductsByAllergens(allergen){
     });
 }
 
-export { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar, getProductsByAllergens };
+//get products by _id
+function getProductsByDefaultId(defId){
+    return Product.findOne({_id:defId}).then(function(product){
+        return product;
+    }).catch(function(err){
+        console.log(err);
+        return [];
+    });
+}
+
+export { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar, getProductsByAllergens, getProductsByDefaultId };
