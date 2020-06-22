@@ -156,7 +156,7 @@ async function handlePostback(sender_psid, received_postback) {
         );
         response = await generateProductEnquiryResponse(product, attribute);
     } else if (postback_intent === "checkout") {
-        response = generateCheckoutResponse();
+        response = await generateCheckoutResponse(sender_psid);
     } else if (postback_intent === "paid") {
         response = {
             attachment: {
@@ -344,7 +344,7 @@ async function processMessage(sender_psid, message) {
                 break;
 
             case "checkout":
-                response = generateCheckoutResponse();
+                response = generateCheckoutResponse(sender_psid);
                 break;
 
             default:
@@ -556,7 +556,16 @@ async function generateViewCartResponse(sender_psid) {
     let cart = await checkCart(user.id);
     
     if (!cart || cart.items.length === 0) {
-        return generateResponseFromMessage("Your cart is empty.");
+        return {
+            text: "Your cart is empty",
+            quick_replies: [
+                {
+                    content_type: "text",
+                    title: "View products",
+                    payload: "recommendation"
+                }
+            ]
+        };
     }
 
     async function getProductsByIds(product_ids, products) {
@@ -613,13 +622,42 @@ async function generateViewCartResponse(sender_psid) {
     return response;
 }
 
-function generateCheckoutResponse() {
+async function generateCheckoutResponse(sender_psid) {
+    let user = await checkUser(sender_psid);
+    let cart = await checkCart(user.id);
+    
+    if (!cart || cart.items.length === 0) {
+        return {
+            text: "Your cart is empty",
+            quick_replies: [
+                {
+                    content_type: "text",
+                    title: "View products",
+                    payload: "recommendation"
+                }
+            ]
+        };
+    }
+
+    async function getProductsByIds(product_ids, products) {
+        for (let idx = 0; idx < product_ids.length; idx++) {
+            let id = product_ids[idx];
+            let to_add = await getProductByID(id);
+            products = await products.concat(to_add);
+        }
+        return products;
+    }
+    
+    let products = await getProductsByIds(cart.items.map(i => i.pid), []);
+    let total_price = products.map((p, idx) => p.price * cart.items[0].quantity)
+        .reduce((acc, v) => acc + v, 0);
+
     return {
         attachment: {
             type: "template",
             payload: {
                 template_type: "button",
-                text: "Please proceed to pay by clicking the button below. Ypu have contributed to (round up price/5) meals for our beneficiaries.",
+                text: `Please proceed to pay by clicking the button below. You will be contributing ${Math.ceil(total_price / 5)} meals for our beneficiaries.`,
                 buttons: [
                     {
                         type: "postback",
