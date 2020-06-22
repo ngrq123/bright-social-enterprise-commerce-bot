@@ -4,7 +4,7 @@ var uniqueValidator = require('mongoose-unique-validator');
 const userSchema = new mongoose.Schema({
     id: { type: String, required: true, unique: true },
     name: String,
-    cartId: { type: String, unique: true }
+    cartId: { type: String }
 });
 
 const User = mongoose.model('User',userSchema);

@@ -5,7 +5,7 @@ import { getAllProducts, getProductsByType, getProductByID, getProductPrice, get
 import { checkUser, createUser } from '../../models/User';
 import { getName } from '../../helpers/fbhelper';
 import { checkCart, addItemToCart, createCart, removeItemFromCart, removeAllItemsFromCart, deleteCart } from '../../models/Cart';
-import { createOrder, getOrder, getAllOrders } from '../../models/Order';
+import { createOrder, getOrder } from '../../models/Order';
 
 let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
@@ -143,25 +143,21 @@ async function handlePostback(sender_psid, received_postback) {
     } else if (postback_intent === "cart_remove") {
         response = await generateRemoveCartResponse(sender_psid, postback_content);
     } else if (postback_intent === "enquiry_delivery") {
-        response = await generateDeliveryEnquiryResponse(sender_psid);
-    } else if (postback_intent === "enquiry_delivery_status_order") {
-        response = await generateDeliveryEnquiryResponse(sender_psid, {status_order: true}, postback_content);
-    } else if (postback_intent === "enquiry_delivery_estimated_arrival") {
-        response = await generateDeliveryEnquiryResponse(sender_psid, {estimated_arrival: true}, postback_content);
+        response = generateDeliveryEnquiryResponse(sender_psid);
     } else if (postback_intent === "enquiry_product") {
         postback_content = (payload.indexOf(" ") === -1) ? "products": postback_content;
         response = generateResponseFromMessage(
             `What would you like to know about our ${postback_content}?`
         );
     } else if (postback_intent === "enquiry_product_attribute") {
-        let attribute = postback_content.substring(0, postback_content.indexOf(" "));
+        let attribute = postback_content.substring(0, postback_content.indexOf(" ") + 1);
         let product = postback_content.substring(
             postback_content.indexOf(" ") + 1,
             postback_content.length
         );
         response = await generateProductEnquiryResponse(product, attribute);
     } else if (postback_intent === "checkout") {
-        response = await generateCheckoutResponse(sender_psid);
+        response = generateCheckoutResponse();
     } else if (postback_intent === "paid") {
         response = await generatePaymentResponse(sender_psid);
     } else if (postback_intent === "receipt_view") {
@@ -263,7 +259,7 @@ async function processMessage(sender_psid, message) {
                         let product = entities["product"][0]["value"];
                         let attribute = entities["product_attribute"][0]["value"];
                         // Handle product enquiry
-                        response = await generateProductEnquiryResponse(product, attribute);
+                        response = generateProductEnquiryResponse(product, attribute);
                     } else if (entities["product_type"] && entities["product_attribute"]) {
                         // Handle product type enquiry with attribute
                         let product_type = entities["product_type"][0]["value"];
@@ -296,7 +292,7 @@ async function processMessage(sender_psid, message) {
                         }
                     });
                 } else if (intent_subcategory === "delivery") {
-                    response = await generateDeliveryEnquiryResponse(sender_psid, entities);
+                    response = generateDeliveryEnquiryResponse(sender_psid, entities);
                 } else if (intent_subcategory === "order") {
                     // Handle order enquiry
                 }
@@ -334,7 +330,7 @@ async function processMessage(sender_psid, message) {
                 break;
 
             case "checkout":
-                response = await generateCheckoutResponse(sender_psid);
+                response = generateCheckoutResponse();
                 break;
 
             default:
@@ -546,16 +542,7 @@ async function generateViewCartResponse(sender_psid) {
     let cart = await checkCart(user.id);
     
     if (!cart || cart.items.length === 0) {
-        return {
-            text: "Your cart is empty.",
-            quick_replies: [
-                {
-                    content_type: "text",
-                    title: "View products",
-                    payload: "recommendation"
-                }
-            ]
-        };
+        return generateResponseFromMessage("Your cart is empty.");
     }
 
     async function getProductsByIds(product_ids, products) {
@@ -612,42 +599,13 @@ async function generateViewCartResponse(sender_psid) {
     return response;
 }
 
-async function generateCheckoutResponse(sender_psid) {
-    let user = await checkUser(sender_psid);
-    let cart = await checkCart(user.id);
-    
-    if (!cart || cart.items.length === 0) {
-        return {
-            text: "Your cart is empty.",
-            quick_replies: [
-                {
-                    content_type: "text",
-                    title: "View products",
-                    payload: "recommendation"
-                }
-            ]
-        };
-    }
-
-    async function getProductsByIds(product_ids, products) {
-        for (let idx = 0; idx < product_ids.length; idx++) {
-            let id = product_ids[idx];
-            let to_add = await getProductByID(id);
-            products = await products.concat(to_add);
-        }
-        return products;
-    }
-    
-    let products = await getProductsByIds(cart.items.map(i => i.pid), []);
-    let total_price = products.map((p, i) => p.price * cart.items[i].quantity)
-        .reduce((acc, v) => acc + v, 0);
-
+function generateCheckoutResponse() {
     return {
         attachment: {
             type: "template",
             payload: {
                 template_type: "button",
-                text: `Please proceed to pay by clicking the button below. You have contributed to ${Math.ceil(total_price / 5)} meals for our beneficiaries.`,
+                text: "Please proceed to pay by clicking the button below. You have contributed to (round up price/5) meals for our beneficiaries.",
                 buttons: [
                     {
                         type: "postback",
@@ -672,7 +630,7 @@ async function generatePaymentResponse(sender_psid){
     let order = await createOrder(user);
     
     if (order!=null){
-        await deleteCart(user.id,cart.id);
+        await deleteCart(user.id,cart.uid);
     }
     else{
         return generateResponseFromMessage("An error has occured, please contact our support team.");
@@ -700,6 +658,7 @@ async function generateReceiptResponse(sender_psid,trackingNumber) {
 
     for (var i = 0; i < products.length; i++){
         let prod = products[i];
+        console.log(prod);
         totalItems += prod.quantity;
         totalPrice += prod.price * prod.quantity;
     }
@@ -776,9 +735,8 @@ async function generateReceiptResponse(sender_psid,trackingNumber) {
 async function generateProductEnquiryResponse(product_name, attribute) {
     // Get product from db, create message and generate response
     let products = await getProductsByName(product_name);
-    console.log(products[0][attribute]);
     let results = products.map(product => product[attribute]);
-    results = Array.from(new Set(results)).filter(v => v !== null);
+    results = Array.from(new Set(results)).filter(v => v != null);
 
     if (results.length === 0) {
         return generateResponseFromMessage("Our " + product_name + " does not have any " + attribute + ".");
@@ -795,93 +753,31 @@ async function generateProductEnquiryResponse(product_name, attribute) {
 async function generateProductTypeEnquiryResponse(product_type, attribute) {
     // Get product from db, create message and generate response
     let products = await getProductsByType(product_type);
-    products = products.map(p => p.title);
-    products = Array.from(new Set(products));
     return {
         text: `Which product are you enquiring about its ${attribute}?`,
         quick_replies: products.map(product => {
             return {
                 content_type: "text",
-                title: product,
-                payload: `enquiry_product_attribute ${attribute} ${product}`
+                title: product.title,
+                payload: `enquiry_product_attribute ${attribute} ${product.title}`
             }
         })
     };
 }
 
-async function generateDeliveryEnquiryResponse(sender_psid, entities = {}, order_number = null) {
-
+function generateDeliveryEnquiryResponse(sender_psid, entities = {}) {
     if (entities["status_order"]) {
         // TODO: Order status
-        let user = await checkUser(sender_psid);
-        let orders = (await getAllOrders(user)).reverse();
-
-        if (!orders || orders.length === 0) return generateResponseFromMessage("You do not have any orders.");
-
-        let order = orders[0];
-        if (order_number) order = orders.filter(order => order.trackingNumber === order_number)[0];
-
-        if (!order_number) order_number = order.trackingNumber;
-        let other_orders = orders.filter(order => order.trackingNumber !== order_number);
-
-        return {
-            attachment: {
-                type: "template",
-                payload: {
-                    template_type: "button",
-                    text: `Your latest order ${order.trackingNumber} status is: ${order.orderStatus}. Would you like to check another order's status?`,
-                    buttons: other_orders.map(order => {
-                        return {
-                            type: "postback",
-                            title: order.trackingNumber,
-                            payload: `enquiry_delivery_status_order ${order.trackingNumber}`
-                        }
-                    })
-                }
-            }
-        };
+        return generateResponseFromMessage(
+            "Your latest order is <status>."
+        );
     }
     
     if (entities["estimated_arrival"]) {
         // TODO: Order estimated arrival
-        if (!order_number) {
-            // TODO: Order status
-            let user = await checkUser(sender_psid);
-            let orders = (await getAllOrders(user)).reverse();
-
-            if (!orders || orders.length === 0) return generateResponseFromMessage("You do not have any orders.");
-
-            return {
-                attachment: {
-                    type: "template",
-                    payload: {
-                        template_type: "button",
-                        text: `Which order are you enquiring for its estimated arrival?`,
-                        buttons: orders.map(order => {
-                            return {
-                                type: "postback",
-                                title: order.trackingNumber,
-                                payload: `enquiry_delivery_estimated_arrival ${order.trackingNumber}`
-                            }
-                        })
-                    }
-                }
-            };
-
-        } else {
-            // Get user's order
-            let user = await checkUser(sender_psid);
-            let order = await getOrder(user, order_number);
-
-            let date = new Date(order.createdAt);
-            let estimated_arrival_date = new Date(Number(date));
-            estimated_arrival_date.setDate(date.getDate() + 7);
-
-            return generateResponseFromMessage(
-                `The average delivery time takes 5-7 working days. Your ordered was sent on ${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}. ` +
-                `It is estimated to arrive by ${estimated_arrival_date.getFullYear()}-${estimated_arrival_date.getMonth() + 1}-${estimated_arrival_date.getDate()}.`
-            );
-        }
+        return generateResponseFromMessage(
+            "The average delivery time takes 5-7 working days. Your ordered was sent on <date>. It is estimated to arrive on <date + 7 working days>."
+        );
     }
     
     if (entities["cost"]) {
