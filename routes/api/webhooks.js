@@ -4,7 +4,7 @@ let router = require('express').Router();
 import { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar } from '../../models/Product';
 import { checkUser, createUser } from '../../models/User';
 import { getName } from '../../helpers/fbhelper';
-import { checkCart, addItemToCart, createCart } from '../../models/Cart';
+import { checkCart, addItemToCart, createCart, removeAllItemsFromCart } from '../../models/Cart';
 
 let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
@@ -133,12 +133,14 @@ async function handlePostback(sender_psid, received_postback) {
         response = await generateRecommendationsResponse([]);
     } else if (postback_intent === "cart_add") {
         // Get product
-        let product = (await getProductByID(postback_content))[0];
+        let product = await getProductByID(postback_content);
 
         // Add to cart
         response = await generateAddCartResponse(sender_psid, product, 1);
     } else if (postback_intent === "cart_view") {
         response = await generateViewCartResponse(sender_psid);
+    } else if (postback_intent === "cart_remove") {
+        response = await generateRemoveCartResponse(sender_psid, product);
     } else if (postback_intent === "enquiry_delivery") {
         response = generateDeliveryEnquiryResponse(sender_psid);
     } else if (postback_intent === "enquiry_product") {
@@ -509,6 +511,44 @@ async function generateAddCartResponse(sender_psid, product, quantity) {
     };
 }
 
+async function generateRemoveCartResponse(sender_psid, product) {
+    return defaultResponse;
+    // // Add product to cart in db
+    // let user = await checkUser(sender_psid);
+    // let cart = await checkCart(user.id);
+
+    // let text = `Removed ${product.title} to cart.`;
+    // if (!cart) {
+    //     text = "Your cart is empty.";
+    // } else {
+    //     console.log("Update cart " + cart.uid);
+    //     cart = await addItemToCart(cart.uid, product.pid, quantity);
+    // }
+
+    // if (!cart) return generateResponseFromMessage("Failed to update cart");
+
+    // return {
+    //     text: text,
+    //     quick_replies: [
+    //         {
+    //             content_type: "text",
+    //             title: "View more products",
+    //             payload: "recommendation"
+    //         },
+    //         {
+    //             content_type: "text",
+    //             title: "View cart",
+    //             payload: `cart_view`
+    //         },
+    //         {
+    //             content_type: "text",
+    //             title: "Checkout",
+    //             payload: `checkout`
+    //         }
+    //     ]
+    // };
+}
+
 // Response on generic template carousel for cart
 async function generateViewCartResponse(sender_psid) {
     // TODO: Get cart from db
@@ -523,7 +563,7 @@ async function generateViewCartResponse(sender_psid) {
         for (let idx = 0; idx < product_ids.length; idx++) {
             let id = product_ids[idx];
             let to_add = await getProductByID(id);
-            products = await products.concat(to_add[0]);
+            products = await products.concat(to_add);
         }
         return products;
     }
