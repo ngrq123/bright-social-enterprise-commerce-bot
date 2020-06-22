@@ -98,18 +98,68 @@ async function addItemToCart(cartId, pid, quantity) {
         quantity: quantity
     };
     
-    let addItem = await Cart.findOneAndUpdate(
-        { uid: cartId },
-        { $push: { items: itemData } },
-        { new: true })
-        .then((result) => result)
-        .catch((err) => {
-            console.error(err);
+    let userCart = await Cart.findOne({uid:cartId,'items.pid':pid}).then((cart) => cart).catch((err) =>  null)
+    
+    if (userCart==null){
+        let addItem = await Cart.findOneAndUpdate(
+            { uid: cartId },
+            { $push: { items: itemData } },
+            { new: true })
+            .then((result) => result)
+            .catch((err) => {
+                console.error(err);
+                return null;
+            });
+
+        return addItem
+    }
+    var cartItems = [];
+    for (var i = 0; i < userCart.items.length; i++){
+        let cartItem = userCart.items[i];
+        if (cartItem.pid===pid){
+            cartItem.quantity += quantity;
+        }
+        cartItems.push(cartItem);
+    }
+    userCart.items = cartItems;
+    
+    // Save cart document
+    let setCart = await userCart.save()
+        .then(doc => doc)
+        .catch(err => {
+            console.log("Error in saving cart");
             return null;
         });
 
-    return addItem
+    return setCart;
 
+}
+
+async function removeItemFromCart(cartId,pid){
+    let userCart = await Cart.findOne({uid:cartId,'items.pid':pid}).then((cart) => cart).catch((err) =>  null)
+    
+    if (userCart == null){
+        return userCart;
+    }
+    
+    var cartItems = [];
+    for (var i = 0; i < userCart.items.length; i++){
+        let cartItem = userCart.items[i];
+        if (cartItem.pid!==pid){
+            cartItems.push(cartItem);
+        }
+    }
+    userCart.items = cartItems;
+    
+    // Save cart document
+    let setCart = await userCart.save()
+        .then(doc => doc)
+        .catch(err => {
+            console.log("Error in saving cart");
+            return null;
+        });
+
+    return setCart;
 }
 
 async function removeAllItemsFromCart(cartId){
@@ -117,7 +167,7 @@ async function removeAllItemsFromCart(cartId){
         { uid: cartId },
         { items: [] },
         { new: true }
-    ).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
+    ).then((result) => { console.log(result); return result }).catch((err) => {console.error(err); return null;})
     
     return deleteItemsFromCart;
 }
@@ -132,12 +182,12 @@ async function deleteCart(userId, cartId) {
 
         User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true })
             .then((result) => { console.log(result); return result })
-            .catch((err) => console.error(err))
+            .catch((err) => {console.error(err); return null;})
     });
     
     await Cart.findOneAndDelete({ uid: cartId })
         .then((result) => { console.log(result); return result })
-        .catch((err) => console.error(err));
+        .catch((err) => {console.error(err); return null;});
 }
 
-export { createCart, checkCart, addItemToCart, removeAllItemsFromCart, deleteCart };
+export { createCart, checkCart, addItemToCart, removeItemFromCart, removeAllItemsFromCart, deleteCart };
