@@ -15,15 +15,15 @@ function createUser(fbid,name){
         id:fbid,
         name:name
     });
-    return newUser.save().then(doc => doc).catch(err => console.log(err));
+    return newUser.save()
+        .then(doc => doc)
+        .catch(err => null);
 }
 
 function checkUser(fbid){
-    return User.find({'id':fbid}).then(function(user){
-        return user;
-    }).catch(function(err){
-        console.log(err);
-    });
+    return User.findOne({'id':fbid})
+        .then(function (user) { return user; })
+        .catch(function (err) { return null });
 }
 
 export { checkUser, createUser };

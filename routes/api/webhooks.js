@@ -57,7 +57,7 @@ router.post("/webhook", (req, res) => {
             // console.log("Sender PSID: " + sender_psid);
 
             let user = await checkUser(sender_psid);
-            if (user.length === 0) {
+            if (!user) {
                 // Get the sender's name
                 let name = await getName(PAGE_ACCESS_TOKEN, sender_psid);
                 user = await createUser(sender_psid, name);
@@ -477,7 +477,7 @@ async function generateAddCartResponse(sender_psid, product, quantity) {
     console.log(product);
     
     // TODO: Add product to cart in db
-    let user = (await checkUser(sender_psid))[0];
+    let user = await checkUser(sender_psid);
     let cart = await checkCart(user._id);
 
     if (cart.length === 0) {
@@ -513,7 +513,7 @@ async function generateAddCartResponse(sender_psid, product, quantity) {
 async function generateViewCartResponse(sender_psid) {
     // TODO: Get cart from db
     let user = await checkUser(sender_psid);
-    let cart = await checkCart(user[0]._id);
+    let cart = await checkCart(user._id);
     
     if (cart.length === 0) {
         return generateResponseFromMessage("Your cart is empty.");
@@ -613,7 +613,7 @@ function generateCheckoutResponse() {
 async function generateReceiptResponse(sender_psid) {
     // Get user's name
     let user = await checkUser(sender_psid);
-    let name = user[0].name;
+    let name = user.name;
 
     // TODO: Get latest order from database
     let products = [
