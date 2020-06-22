@@ -619,7 +619,7 @@ function generateCheckoutResponse() {
             type: "template",
             payload: {
                 template_type: "button",
-                text: "Click on the button below to pay.",
+                text: "Please proceed to pay by clicking the button below. Ypu have contributed to (round up price/5) meals for our beneficiaries.",
                 buttons: [
                     {
                         type: "postback",
