@@ -42,32 +42,52 @@ async function createCart(userId, pid, quantity) {
             quantity: quantity
         }]
         // totalPrice: totalPrice
-    })
-    await User.findOne({id: userId} ).then((user) => {
-        if (!user) { return res.status(401).send('User doesnt exist!'); }
+    });
 
-        const query_param_userId = user._id;
-        const user_cartId = newCart.uid;
+    // Add cart id to user document
+    await User.findOne({id: userId})
+        .then((user) => {
+            if (!user) {
+                console.log("User not found when creating cart.");
+             }
 
-        User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true }).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
-    }).catch(err => { console.error(err); res.send(err) })
-    let setCart = await newCart.save().then(doc => { console.log(doc); }).catch(err => { console.error(err); });
+            const query_param_userId = user._id;
+            const user_cartId = newCart.uid;
 
-    return setCart
+            User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true })
+                .then((result) => console.log("User document updated with cart id."))
+                .catch((err) => console.log("User document failed to update cart id."))
+        })
+        .catch(err => console.log("Error in finding user during cart creation."));
+
+    // Save cart document
+    let setCart = await newCart.save()
+        .then(doc => doc)
+        .catch(err => {
+            console.log("Error in saving cart");
+            return null;
+        });
+
+    return setCart;
 }
 
 //Check for user active cart
 async function checkCart(userId) {
 
-    let getCartId = await User.findOne({id: userId}).then((user) => {
-        if (!user) { return res.status(401).send('User doesnt exist!'); }
+    let getCartId = await User.findOne({id: userId})
+        .then((user) => {
+            if (!user) console.log('User doesnt exist!');
 
-        const cartId = user.cartId;
+            const cartId = user.cartId;
+            return cartId;
+        });
 
-        return cartId
-    })
+    // Early return if cart id is not found
+    if (!getCartId) return null;
 
-    let getCart = await Cart.find({ uid: getCartId }).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
+    let getCart = await Cart.findOne({ uid: getCartId })
+        .then((result) => result)
+        .catch((err) => null);
 
     return getCart
 }
@@ -76,14 +96,17 @@ async function addItemToCart(cartId, pid, quantity) {
     let itemData = {
         pid: pid,
         quantity: quantity
-    }
-    
-    
+    };
     
     let addItem = await Cart.findOneAndUpdate(
         { uid: cartId },
         { $push: { items: itemData } },
-        { new: true }).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
+        { new: true })
+        .then((result) => result)
+        .catch((err) => {
+            console.error(err);
+            return null;
+        });
 
     return addItem
 
@@ -102,13 +125,19 @@ async function removeAllItemsFromCart(cartId){
 async function deleteCart(userId, cartId) {
 
     await User.findOne({id: userId}).then((user) => {
-        if (!user) { return res.status(401).send('User doesnt exist!'); }
+        if (!user) { return res.status(401).send('User doesnt exist!'); } 
 
         const query_param_userId = user._id;
         const user_cartId = "";
 
-        User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true }).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
-    await Cart.findOneAndDelete({ uid: cartId }).then((result) => { console.log(result); return result }).catch((err) => console.error(err))
+        User.findByIdAndUpdate(query_param_userId, { "cartId": user_cartId },{ new: true })
+            .then((result) => { console.log(result); return result })
+            .catch((err) => console.error(err))
+    });
+    
+    await Cart.findOneAndDelete({ uid: cartId })
+        .then((result) => { console.log(result); return result })
+        .catch((err) => console.error(err));
 }
 
 export { createCart, checkCart, addItemToCart, removeAllItemsFromCart, deleteCart };

@@ -399,7 +399,6 @@ async function generateRecommendationsResponse(product_types) {
             for (let idx = 0; idx < product_types.length; idx++) {
                 let type = product_types[idx];
                 let to_add = await getProductsByType(type);
-                console.log(to_add);
                 products = await products.concat(to_add);
             }
             return products;
@@ -474,21 +473,22 @@ async function generateSelectProductVariationResponse(products) {
 
 // Response on confirmation of product added to cart and quick replies
 async function generateAddCartResponse(sender_psid, product, quantity) {
-    console.log(product);
-    
-    // TODO: Add product to cart in db
+    // Add product to cart in db
     let user = await checkUser(sender_psid);
-    let cart = await checkCart(user._id);
+    let cart = await checkCart(user.id);
 
-    if (cart.length === 0) {
-        cart = await createCart(user._id, product.pid, quantity);
-        console.log(cart);
+    if (!cart) {
+        console.log("Create cart");
+        cart = await createCart(user.id, product.pid, quantity);
     } else {
-
+        console.log("Update cart " + cart.uid);
+        cart = await addItemToCart(cart.uid, product.pid, quantity);
     }
 
+    if (!cart) return generateResponseFromMessage("Failed to update cart");
+
     return {
-        text: `Added ${quantity} ${product_name} to cart.`,
+        text: `Added ${quantity} ${product.title} to cart.`,
         quick_replies: [
             {
                 content_type: "text",
@@ -513,51 +513,33 @@ async function generateAddCartResponse(sender_psid, product, quantity) {
 async function generateViewCartResponse(sender_psid) {
     // TODO: Get cart from db
     let user = await checkUser(sender_psid);
-    let cart = await checkCart(user._id);
+    let cart = await checkCart(user.id);
     
-    if (cart.length === 0) {
+    if (!cart) {
         return generateResponseFromMessage("Your cart is empty.");
     }
 
-    console.log(cart);
-
-    let products = [
-        {
-            id: 1,
-            name: "Dark Chocolate Oatmeal Cookies",
-            price: 3.5,
-            url:
-                "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            quantity: 1
-        },
-        {
-            id: 2,
-            name: "Cranberry Sweetheart Cookies (Eggless)",
-            price: 3.5,
-            url:
-                "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            quantity: 2
-        },
-        {
-            id: 3,
-            name: "Earl Grey Sunflower Seeds Cookies",
-            price: 3.5,
-            url:
-                "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            quantity: 1,
-            pattern: "Bag"
+    async function getProductsByIds(product_ids, products) {
+        for (let idx = 0; idx < product_ids.length; idx++) {
+            let id = product_ids[idx];
+            let to_add = await getProductByID(id);
+            products = await products.concat(to_add[0]);
         }
-    ];
+        return products;
+    }
+    
+    let products = await getProductsByIds(cart.items.map(i => i.pid), []);
+
     let response = {
         attachment: {
             type: "template",
             payload: {
                 template_type: "generic",
-                elements: products.map(product => {
+                elements: products.map((product, idx) => {
                     return {
-                        title: product["name"],
-                        subtitle: (product.pattern) ? `${product.pattern}, Qty: ${product["quantity"]} ($${product["price"]} each)` : `Qty: ${product["quantity"]} ($${product["price"]} each)`,
-                        image_url: product["url"],
+                        title: product["title"],
+                        subtitle: (product.pattern) ? `${product.pattern}, Qty: ${cart.items[idx].quantity} ($${product["price"]} each)` : `Qty: ${cart.items[idx].quantity} ($${product["price"]} each)`,
+                        image_url: product["image_link"],
                         buttons: [
                             {
                                 type: "postback",
@@ -567,7 +549,7 @@ async function generateViewCartResponse(sender_psid) {
                             {
                                 type: "postback",
                                 title: "Remove All",
-                                payload: `cart_remove ${product["name"]}`
+                                payload: `cart_remove ${product["title"]}`
                             }
                         ]
                     };
@@ -587,6 +569,7 @@ async function generateViewCartResponse(sender_psid) {
             }
         ]
     };
+    console.log(response.attachment.payload.elements);
     return response;
 }
 
