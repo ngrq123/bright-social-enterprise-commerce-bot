@@ -32,11 +32,11 @@ async function createOrder(user){
     })
     
     
-    let setOrder = await newOrder.save().then(doc => {console.log(doc); res.send(doc)}).catch(err => { console.error(err); res.send(err)});
+    let setOrder = await newOrder.save().then((doc) => doc).catch((err) => null);
     
-    if (setOrder){
+    if (setOrder!=null){
         user.cartId = undefined;
-        let updateUser = user.save().then(doc => { console.log(doc); res.send(doc) }).catch(err => { console.error(err); res.send(err) });
+        let updateUser = user.save().then((doc) => doc).catch((err) => null);
         
         return updateUser;
     }
@@ -45,11 +45,11 @@ async function createOrder(user){
 async function getOrder(user){
     let cartId = user.cartId;
     
-    let getCart = await Cart.find({ uid: cartId }).then((cart) => { return cart }).catch((err) =>console.error(err))
+    let getCart = await Cart.find({ uid: cartId }).then((cart) => cart).catch((err) => null);
     
-    let getOrder = await Order.find({cart: getCart}).then((order) => {return order}).catch((err) => console.error(err))
+    let getOrder = await Order.find({cart: getCart}).then((order) => order).catch((err) => null);
     
-    return getOrder
+    return getOrder;
 
 }
 
