@@ -154,7 +154,7 @@ async function handlePostback(sender_psid, received_postback) {
             `What would you like to know about our ${postback_content}?`
         );
     } else if (postback_intent === "enquiry_product_attribute") {
-        let attribute = postback_content.substring(0, postback_content.indexOf(" ") + 1);
+        let attribute = postback_content.substring(0, postback_content.indexOf(" "));
         let product = postback_content.substring(
             postback_content.indexOf(" ") + 1,
             postback_content.length
@@ -263,7 +263,7 @@ async function processMessage(sender_psid, message) {
                         let product = entities["product"][0]["value"];
                         let attribute = entities["product_attribute"][0]["value"];
                         // Handle product enquiry
-                        response = generateProductEnquiryResponse(product, attribute);
+                        response = await generateProductEnquiryResponse(product, attribute);
                     } else if (entities["product_type"] && entities["product_attribute"]) {
                         // Handle product type enquiry with attribute
                         let product_type = entities["product_type"][0]["value"];
@@ -776,8 +776,9 @@ async function generateReceiptResponse(sender_psid,trackingNumber) {
 async function generateProductEnquiryResponse(product_name, attribute) {
     // Get product from db, create message and generate response
     let products = await getProductsByName(product_name);
+    console.log(products[0][attribute]);
     let results = products.map(product => product[attribute]);
-    results = Array.from(new Set(results)).filter(v => v != null);
+    results = Array.from(new Set(results)).filter(v => v !== null);
 
     if (results.length === 0) {
         return generateResponseFromMessage("Our " + product_name + " does not have any " + attribute + ".");
@@ -794,13 +795,15 @@ async function generateProductEnquiryResponse(product_name, attribute) {
 async function generateProductTypeEnquiryResponse(product_type, attribute) {
     // Get product from db, create message and generate response
     let products = await getProductsByType(product_type);
+    products = products.map(p => p.title);
+    products = Array.from(new Set(products));
     return {
         text: `Which product are you enquiring about its ${attribute}?`,
         quick_replies: products.map(product => {
             return {
                 content_type: "text",
-                title: product.title,
-                payload: `enquiry_product_attribute ${attribute} ${product.title}`
+                title: product,
+                payload: `enquiry_product_attribute ${attribute} ${product}`
             }
         })
     };
