@@ -1,10 +1,11 @@
 let request = require('request');
 let mongoose = require('mongoose');
 let router = require('express').Router();
-import { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar } from '../../models/Product';
+import { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar, getProductsByDefaultId } from '../../models/Product';
 import { checkUser, createUser } from '../../models/User';
 import { getName } from '../../helpers/fbhelper';
-import { checkCart, addItemToCart, createCart, removeItemFromCart, removeAllItemsFromCart } from '../../models/Cart';
+import { checkCart, addItemToCart, createCart, removeItemFromCart, removeAllItemsFromCart, deleteCart } from '../../models/Cart';
+import { createOrder, getOrder } from '../../models/Order';
 
 let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
@@ -158,22 +159,7 @@ async function handlePostback(sender_psid, received_postback) {
     } else if (postback_intent === "checkout") {
         response = generateCheckoutResponse();
     } else if (postback_intent === "paid") {
-        response = {
-            attachment: {
-                type: "template",
-                payload: {
-                    template_type: "button",
-                    text: "Your order (order no.) is confirmed.",
-                    buttons: [
-                        {
-                            type: "postback",
-                            title: "View Receipt",
-                            payload: "receipt_view"
-                        }
-                    ]
-                }
-            }
-        };
+        response = await generatePaymentResponse(sender_psid);
     } else if (postback_intent === "receipt_view") {
         response = await generateReceiptResponse(sender_psid);
     }
@@ -632,39 +618,76 @@ function generateCheckoutResponse() {
     };
 }
 
+async function generatePaymentResponse(sender_psid){
+    
+    let user = await checkUser(sender_psid);
+    let cart = await checkCart(user.id);
+
+    if (!cart || cart.items.length === 0) {
+        return generateResponseFromMessage("Your cart is empty.");
+    }    
+    
+    let order = await createOrder(user);
+    
+    if (order!=null){
+        deleteCart(user.id,cart.id);
+    }
+    else{
+        return generateResponseFromMessage("An error has occured, please contact our support team.");
+    }
+    
+    return await generateReceiptResponse(sender_psid,order.trackingNumber);
+}
+
 // Response on receipt template for latest confirmed order
-async function generateReceiptResponse(sender_psid) {
+async function generateReceiptResponse(sender_psid,trackingNumber) {
     // Get user's name
     let user = await checkUser(sender_psid);
     let name = user.name;
-
+    
     // TODO: Get latest order from database
-    let products = [
-        {
-            id: 1,
-            name: "Dark Chocolate Oatmeal Cookies",
-            price: 3.5,
-            url:
-                "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            quantity: 1
-        },
-        {
-            id: 2,
-            name: "Cranberry Sweetheart Cookies (Eggless)",
-            price: 3.5,
-            url:
-                "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            quantity: 2
-        },
-        {
-            id: 3,
-            name: "Earl Grey Sunflower Seeds Cookies",
-            price: 3.5,
-            url:
-                "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            quantity: 1
-        }
-    ];
+    let order = await getOrder(user,trackingNumber);
+    
+    if (order == null){
+        return generateResponseFromMessage("You currently do not have an order.");
+    }
+    
+    let products = order.products;
+    let totalItems = 0;
+    let totalPrice = 0;
+
+    for (var i = 0; i < products.length; i++){
+        let prod = products[i];
+        totalItems += prod.quantity;
+        totalPrice += prod.price * prod.quantity;
+    }
+    
+    // let products = [
+        // {
+            // id: 1,
+            // name: "Dark Chocolate Oatmeal Cookies",
+            // price: 3.5,
+            // url:
+                // "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+            // quantity: 1
+        // },
+        // {
+            // id: 2,
+            // name: "Cranberry Sweetheart Cookies (Eggless)",
+            // price: 3.5,
+            // url:
+                // "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+            // quantity: 2
+        // },
+        // {
+            // id: 3,
+            // name: "Earl Grey Sunflower Seeds Cookies",
+            // price: 3.5,
+            // url:
+                // "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
+            // quantity: 1
+        // }
+    // ];
 
     let response = {
         attachment: {
@@ -672,7 +695,7 @@ async function generateReceiptResponse(sender_psid) {
             payload: {
                 template_type: "receipt",
                 recipient_name: name,
-                order_number: "<ORDER_NUMBER>", // TODO: Retrieve and add order number
+                order_number: order.trackingNumber, // TODO: Retrieve and add order number
                 currency: "SGD",
                 payment_method: "PayPal",
                 order_url: "",
@@ -684,19 +707,20 @@ async function generateReceiptResponse(sender_psid) {
                     country: "SG"
                 },
                 summary: {
-                    subtotal: 10,
+                    subtotal: totalPrice,
                     shipping_cost: 5,
-                    total_tax: 2,
-                    total_cost: 15
+                    total_tax: (totalPrice+5)*0.07,
+                    total_cost: totalPrice+5
                 },
                 elements: products.map(product => {
                     return {
-                        title: `${product["name"]}`,
-                        subtitle: "",
+                        //title: `${product["name"]}`,
+                        title: product["title"],
+                        subtitle: product["pattern"],
                         quantity: product["quantity"],
-                        price: product["price"],
+                        price: product["price"]*product["quantity"],
                         currency: "SGD",
-                        image_url: product["url"]
+                        image_url: product["image_link"]
                     };
                 })
             }

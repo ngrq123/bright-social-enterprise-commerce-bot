@@ -30,7 +30,12 @@ router.get("/", async (req,res) =>{
     // });
     // let products = await getProductsByAllergens("dairy");
     // console.log(products)
-    removeItemFromCart('688d2689-e361-4394-b97d-227d01c3bfeb','3060724697352196');
+    //removeItemFromCart('688d2689-e361-4394-b97d-227d01c3bfeb','3060724697352196');
+    let user = await checkUser("3935700636471729");
+    // let order = await createOrder(user);
+    // console.log(order);
+    let order = await getOrder(user);
+    console.log(order);
     
     res.status(200).send("Success :)");
     
