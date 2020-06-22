@@ -33,6 +33,7 @@ function getAllProducts(){
         return products;
     }).catch(function(err){
         console.log(err);
+        return [];
     });
 }
 
@@ -42,33 +43,37 @@ function getProductsByType(typeValue){
         return products;
     }).catch(function(err){
         console.log(err);
+        return [];
     });
 }
 
 //Get product by ID
 function getProductByID(pid){
-    return Product.find({'pid':pid}).then(function(prod){
+    return Product.findOne({'pid':pid}).then(function(prod){
         return prod;
     }).catch(function(err){
-       console.log(err) 
+       console.log(err);
+       return null;
     });
 }
 
 // Get product Price by ID
 function getProductPrice(pid){
-    return Product.find({'pid':pid}).then(function(prod){
-        return prod[0].price;
+    return Product.findOne({'pid':pid}).then(function(prod){
+        return prod.price;
     }).catch(function(err){
-       console.log(err) 
+        console.log(err);
+        return null;
     });
 }
 
 // get product Desc by ID
 function getProductDesc(pid){
-    return Product.find({'pid':pid}).then(function(prod){
-        return prod[0].description;
+    return Product.findOne({'pid':pid}).then(function(prod){
+        return prod.description;
     }).catch(function(err){
-       console.log(err) 
+        console.log(err);
+        return null;
     });
 }
 
@@ -77,16 +82,18 @@ function getProductsByName(name){
     return Product.find({'title':name}).then(function(prod){
         return prod;
     }).catch(function(err){
-       console.log(err) 
+        console.log(err);
+        return null;
     });
 }
 
 // get product by name and variation
 function getProductByNameVar(name,variation){
-    return Product.find({'title':name,'pattern':variation}).then(function(prod){
+    return Product.findOne({'title':name,'pattern':variation}).then(function(prod){
         return prod;
     }).catch(function(err){
-       console.log(err) 
+        console.log(err);
+        return null;
     });
 }
 
