@@ -5,7 +5,7 @@ import { getAllProducts, getProductsByType, getProductByID, getProductPrice, get
 import { checkUser, createUser } from '../../models/User';
 import { getName } from '../../helpers/fbhelper';
 import { checkCart, addItemToCart, createCart, removeItemFromCart, removeAllItemsFromCart, deleteCart } from '../../models/Cart';
-import { createOrder, getOrder } from '../../models/Order';
+import { createOrder, getOrder, getAllOrders } from '../../models/Order';
 
 let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
@@ -143,7 +143,11 @@ async function handlePostback(sender_psid, received_postback) {
     } else if (postback_intent === "cart_remove") {
         response = await generateRemoveCartResponse(sender_psid, postback_content);
     } else if (postback_intent === "enquiry_delivery") {
-        response = generateDeliveryEnquiryResponse(sender_psid);
+        response = await generateDeliveryEnquiryResponse(sender_psid);
+    } else if (postback_intent === "enquiry_delivery_status_order") {
+        response = await generateDeliveryEnquiryResponse(sender_psid, {status_order: true}, postback_content);
+    } else if (postback_intent === "enquiry_delivery_estimated_arrival") {
+        response = await generateDeliveryEnquiryResponse(sender_psid, {estimated_arrival: true}, postback_content);
     } else if (postback_intent === "enquiry_product") {
         postback_content = (payload.indexOf(" ") === -1) ? "products": postback_content;
         response = generateResponseFromMessage(
@@ -157,7 +161,7 @@ async function handlePostback(sender_psid, received_postback) {
         );
         response = await generateProductEnquiryResponse(product, attribute);
     } else if (postback_intent === "checkout") {
-        response = await generateCheckoutResponse();
+        response = await generateCheckoutResponse(sender_psid);
     } else if (postback_intent === "paid") {
         response = await generatePaymentResponse(sender_psid);
     } else if (postback_intent === "receipt_view") {
@@ -292,7 +296,7 @@ async function processMessage(sender_psid, message) {
                         }
                     });
                 } else if (intent_subcategory === "delivery") {
-                    response = generateDeliveryEnquiryResponse(sender_psid, entities);
+                    response = await generateDeliveryEnquiryResponse(sender_psid, entities);
                 } else if (intent_subcategory === "order") {
                     // Handle order enquiry
                 }
@@ -330,7 +334,7 @@ async function processMessage(sender_psid, message) {
                 break;
 
             case "checkout":
-                response = await generateCheckoutResponse();
+                response = await generateCheckoutResponse(sender_psid);
                 break;
 
             default:
@@ -608,7 +612,7 @@ async function generateViewCartResponse(sender_psid) {
     return response;
 }
 
-async function generateCheckoutResponse() {
+async function generateCheckoutResponse(sender_psid) {
     let user = await checkUser(sender_psid);
     let cart = await checkCart(user.id);
     
@@ -802,19 +806,79 @@ async function generateProductTypeEnquiryResponse(product_type, attribute) {
     };
 }
 
-function generateDeliveryEnquiryResponse(sender_psid, entities = {}) {
+async function generateDeliveryEnquiryResponse(sender_psid, entities = {}, order_number = null) {
+
     if (entities["status_order"]) {
         // TODO: Order status
-        return generateResponseFromMessage(
-            "Your latest order is <status>."
-        );
+        let user = await checkUser(sender_psid);
+        let orders = (await getAllOrders(user)).reverse();
+
+        if (!orders || orders.length === 0) return generateResponseFromMessage("You do not have any orders.");
+
+        let order = orders[0];
+        if (order_number) order = orders.filter(order => order.trackingNumber === order_number)[0];
+
+        if (!order_number) order_number = order.trackingNumber;
+        let other_orders = orders.filter(order => order.trackingNumber !== order_number);
+
+        return {
+            attachment: {
+                type: "template",
+                payload: {
+                    template_type: "button",
+                    text: `Your latest order ${order.trackingNumber} status is: ${order.orderStatus}. Would you like to check another order's status?`,
+                    buttons: other_orders.map(order => {
+                        return {
+                            type: "postback",
+                            title: order.trackingNumber,
+                            payload: `enquiry_delivery_status_order ${order.trackingNumber}`
+                        }
+                    })
+                }
+            }
+        };
     }
     
     if (entities["estimated_arrival"]) {
         // TODO: Order estimated arrival
-        return generateResponseFromMessage(
-            "The average delivery time takes 5-7 working days. Your ordered was sent on <date>. It is estimated to arrive on <date + 7 working days>."
-        );
+        if (!order_number) {
+            // TODO: Order status
+            let user = await checkUser(sender_psid);
+            let orders = (await getAllOrders(user)).reverse();
+
+            if (!orders || orders.length === 0) return generateResponseFromMessage("You do not have any orders.");
+
+            return {
+                attachment: {
+                    type: "template",
+                    payload: {
+                        template_type: "button",
+                        text: `Which order are you enquiring for its estimated arrival?`,
+                        buttons: orders.map(order => {
+                            return {
+                                type: "postback",
+                                title: order.trackingNumber,
+                                payload: `enquiry_delivery_estimated_arrival ${order.trackingNumber}`
+                            }
+                        })
+                    }
+                }
+            };
+
+        } else {
+            // Get user's order
+            let user = await checkUser(sender_psid);
+            let order = await getOrder(user, order_number);
+
+            let date = new Date(order.createdAt);
+            let estimated_arrival_date = new Date(Number(date));
+            estimated_arrival_date.setDate(date.getDate() + 7);
+
+            return generateResponseFromMessage(
+                `The average delivery time takes 5-7 working days. Your ordered was sent on ${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}. ` +
+                `It is estimated to arrive by ${estimated_arrival_date.getFullYear()}-${estimated_arrival_date.getMonth() + 1}-${estimated_arrival_date.getDate()}.`
+            );
+        }
     }
     
     if (entities["cost"]) {
