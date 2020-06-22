@@ -4,7 +4,7 @@ let router = require('express').Router();
 import { getAllProducts, getProductsByType, getProductByID, getProductPrice, getProductDesc, getProductsByName, getProductByNameVar } from '../../models/Product';
 import { checkUser, createUser } from '../../models/User';
 import { getName } from '../../helpers/fbhelper';
-import { checkCart, addItemToCart, createCart, removeAllItemsFromCart } from '../../models/Cart';
+import { checkCart, addItemToCart, createCart, removeItemFromCart, removeAllItemsFromCart } from '../../models/Cart';
 
 let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
@@ -140,7 +140,7 @@ async function handlePostback(sender_psid, received_postback) {
     } else if (postback_intent === "cart_view") {
         response = await generateViewCartResponse(sender_psid);
     } else if (postback_intent === "cart_remove") {
-        response = await generateRemoveCartResponse(sender_psid, product);
+        response = await generateRemoveCartResponse(sender_psid, postback_content);
     } else if (postback_intent === "enquiry_delivery") {
         response = generateDeliveryEnquiryResponse(sender_psid);
     } else if (postback_intent === "enquiry_product") {
@@ -511,42 +511,42 @@ async function generateAddCartResponse(sender_psid, product, quantity) {
     };
 }
 
-async function generateRemoveCartResponse(sender_psid, product) {
-    return defaultResponse;
-    // // Add product to cart in db
-    // let user = await checkUser(sender_psid);
-    // let cart = await checkCart(user.id);
+async function generateRemoveCartResponse(sender_psid, product_id) {
+    // Remove product to cart in db
+    let user = await checkUser(sender_psid);
+    let cart = await checkCart(user.id);
+    let product = await getProductByID(product_id);
 
-    // let text = `Removed ${product.title} to cart.`;
-    // if (!cart) {
-    //     text = "Your cart is empty.";
-    // } else {
-    //     console.log("Update cart " + cart.uid);
-    //     cart = await addItemToCart(cart.uid, product.pid, quantity);
-    // }
+    let text = `Removed all ${product.title} from cart.`;
+    if (!cart) {
+        text = "Your cart is empty.";
+    } else {
+        console.log("Update cart " + cart.uid);
+        cart = await removeItemFromCart(cart.uid, product.pid);
 
-    // if (!cart) return generateResponseFromMessage("Failed to update cart");
+        if (!cart) return generateResponseFromMessage("Failed to update cart");
+    }
 
-    // return {
-    //     text: text,
-    //     quick_replies: [
-    //         {
-    //             content_type: "text",
-    //             title: "View more products",
-    //             payload: "recommendation"
-    //         },
-    //         {
-    //             content_type: "text",
-    //             title: "View cart",
-    //             payload: `cart_view`
-    //         },
-    //         {
-    //             content_type: "text",
-    //             title: "Checkout",
-    //             payload: `checkout`
-    //         }
-    //     ]
-    // };
+    return {
+        text: text,
+        quick_replies: [
+            {
+                content_type: "text",
+                title: "View more products",
+                payload: "recommendation"
+            },
+            {
+                content_type: "text",
+                title: "View cart",
+                payload: `cart_view`
+            },
+            {
+                content_type: "text",
+                title: "Checkout",
+                payload: `checkout`
+            }
+        ]
+    };
 }
 
 // Response on generic template carousel for cart
@@ -555,7 +555,7 @@ async function generateViewCartResponse(sender_psid) {
     let user = await checkUser(sender_psid);
     let cart = await checkCart(user.id);
     
-    if (!cart) {
+    if (!cart || cart.items.length === 0) {
         return generateResponseFromMessage("Your cart is empty.");
     }
 
@@ -589,7 +589,7 @@ async function generateViewCartResponse(sender_psid) {
                             {
                                 type: "postback",
                                 title: "Remove All",
-                                payload: `cart_remove ${product["title"]}`
+                                payload: `cart_remove ${product.pid}`
                             }
                         ]
                     };
