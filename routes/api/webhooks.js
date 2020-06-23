@@ -781,10 +781,12 @@ async function generateProductEnquiryResponse(product_name, attribute) {
 
     let results = products.map(product => product[attribute]);
     results = Array.from(new Set(results)).filter(v => v != null);
+
+    let parseResults = (r) => r.slice(0, r.length-1).join(", ") + " and " + r[r.length-1];
     
     if (Array.isArray(results[0])) {
         results = results[0];
-        return generateResponseFromMessage("The " + attribute + " in our " + product_name + " are " + results);
+        return generateResponseFromMessage("The " + attribute + " in our " + product_name + " are " + parseResults(results.map(r => r.toLowerCase())) + ".");
     }
 
     if (results.length === 0) {
@@ -792,10 +794,10 @@ async function generateProductEnquiryResponse(product_name, attribute) {
     }
     
     if (results.length === 1) {
-        return generateResponseFromMessage("The " + attribute + " of our " + product_name + " is " + results);
+        return generateResponseFromMessage("The " + attribute + " of our " + product_name + " is " + results + ".");
     }
     
-    return generateResponseFromMessage("We have the following variations for our " + product_name + ": " + results.join(", "));
+    return generateResponseFromMessage("We have the following variations for our " + product_name + ": " + parseResults(results) + ".");
 }
 
 // Response on prododuct enquiry
