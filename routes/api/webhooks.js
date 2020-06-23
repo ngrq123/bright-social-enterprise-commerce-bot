@@ -133,15 +133,21 @@ async function handlePostback(sender_psid, received_postback) {
     if (postback_intent === "recommendation") {
         response = await generateRecommendationsResponse([]);
     } else if (postback_intent === "cart_add") {
-        let product_id = postback_content.substring(0, postback_content.indexOf(" "));
-        let quantity = parseInt(postback_content.substring(postback_content.indexOf(" ")))
-        if (quantity.length === 0) quantity = 1;
+        
+        if (postback_content.indexOf(" ") === -1) {
+            // No quantity
+            let product = await getProductByID(postback_content);
+            // Add to cart
+            response = await generateAddCartResponse(sender_psid, product, 1);
+        } else {
+            let product_id = postback_content.substring(0, postback_content.indexOf(" "));
+            let quantity = parseInt(postback_content.substring(postback_content.indexOf(" ")))
 
-        // Get product
-        let product = await getProductByID(product_id);
+            // Get product
+            let product = await getProductByID(product_id);
+            response = await generateAddCartResponse(sender_psid, product, quantity);
+        }
 
-        // Add to cart
-        response = await generateAddCartResponse(sender_psid, product, quantity);
     } else if (postback_intent === "cart_view") {
         response = await generateViewCartResponse(sender_psid);
     } else if (postback_intent === "cart_remove") {
