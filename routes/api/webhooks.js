@@ -362,6 +362,10 @@ async function processMessage(sender_psid, message) {
                 response = await generateCheckoutResponse(sender_psid);
                 break;
 
+            case "thanking":
+                response = generateResponseFromMessage("We are glad to have you with us.\n\nLike our Facebook page https://www.facebook.com/Bright-Social-Enterprise-113727397029133 to stay updated, or check our website for volunteering opportunities!");
+                break;
+
             default:
                 response = defaultResponse;
         }
