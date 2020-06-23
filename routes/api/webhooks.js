@@ -143,7 +143,7 @@ async function handlePostback(sender_psid, received_postback) {
     } else if (postback_intent === "cart_remove") {
         response = await generateRemoveCartResponse(sender_psid, postback_content);
     } else if (postback_intent === "enquiry_delivery") {
-        response = generateDeliveryEnquiryResponse(sender_psid);
+        response = await generateDeliveryEnquiryResponse(sender_psid);
     } else if (postback_intent === "enquiry_product") {
         postback_content = (payload.indexOf(" ") === -1) ? "products": postback_content;
         response = generateResponseFromMessage(
@@ -157,7 +157,7 @@ async function handlePostback(sender_psid, received_postback) {
         );
         response = await generateProductEnquiryResponse(product, attribute);
     } else if (postback_intent === "checkout") {
-        response = generateCheckoutResponse();
+        response = await generateCheckoutResponse(sender_psid);
     } else if (postback_intent === "paid") {
         response = await generatePaymentResponse(sender_psid);
     } else if (postback_intent === "receipt_view") {
@@ -292,7 +292,7 @@ async function processMessage(sender_psid, message) {
                         }
                     });
                 } else if (intent_subcategory === "delivery") {
-                    response = generateDeliveryEnquiryResponse(sender_psid, entities);
+                    response = await generateDeliveryEnquiryResponse(sender_psid, entities);
                 } else if (intent_subcategory === "order") {
                     // Handle order enquiry
                 }
@@ -330,7 +330,7 @@ async function processMessage(sender_psid, message) {
                 break;
 
             case "checkout":
-                response = generateCheckoutResponse();
+                response = await generateCheckoutResponse(sender_psid);
                 break;
 
             default:
@@ -638,7 +638,7 @@ async function generateCheckoutResponse(sender_psid) {
                 buttons: [
                     {
                         type: "postback",
-                        title: "Pay",
+                        title: "Proceed to Pay",
                         payload: "paid"
                     }
                 ]
@@ -802,7 +802,7 @@ async function generateProductTypeEnquiryResponse(product_type, attribute) {
     };
 }
 
-function generateDeliveryEnquiryResponse(sender_psid, entities = {}) {
+async function generateDeliveryEnquiryResponse(sender_psid, entities = {}) {
     if (entities["status_order"]) {
         // Order status
         let user = await checkUser(sender_psid);
