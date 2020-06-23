@@ -541,7 +541,7 @@ async function generateRemoveCartResponse(sender_psid, product_id) {
 
 // Response on generic template carousel for cart
 async function generateViewCartResponse(sender_psid) {
-    // TODO: Get cart from db
+    // Get cart from db
     let user = await checkUser(sender_psid);
     let cart = await checkCart(user.id);
     
@@ -639,7 +639,7 @@ async function generateCheckoutResponse(sender_psid) {
     }
     
     let products = await getProductsByIds(cart.items.map(i => i.pid), []);
-    let total_price = products.map((p, i) => p.price * cart.items[i].quantity)
+    let total_price = products.map((p, i) => parseInt(p.price) * cart.items[i].quantity)
         .reduce((acc, v) => acc + v, 0);
 
     return {
@@ -687,7 +687,7 @@ async function generateReceiptResponse(sender_psid,trackingNumber) {
     let user = await checkUser(sender_psid);
     let name = user.name;
     
-    // TODO: Get latest order from database
+    // Get latest order from database
     let order = await getOrder(user,trackingNumber);
     
     if (order == null){
@@ -701,7 +701,7 @@ async function generateReceiptResponse(sender_psid,trackingNumber) {
     for (var i = 0; i < products.length; i++){
         let prod = products[i];
         totalItems += prod.quantity;
-        totalPrice += prod.price * prod.quantity;
+        totalPrice += parseInt(prod.price) * prod.quantity;
     }
     
     // let products = [
@@ -737,7 +737,7 @@ async function generateReceiptResponse(sender_psid,trackingNumber) {
             payload: {
                 template_type: "receipt",
                 recipient_name: name,
-                order_number: order.trackingNumber, // TODO: Retrieve and add order number
+                order_number: order.trackingNumber,
                 currency: "SGD",
                 payment_method: "PayPal",
                 order_url: "",
@@ -776,9 +776,16 @@ async function generateReceiptResponse(sender_psid,trackingNumber) {
 async function generateProductEnquiryResponse(product_name, attribute) {
     // Get product from db, create message and generate response
     let products = await getProductsByName(product_name);
-    console.log(products[0][attribute]);
+
+    if (!products) return generateResponseFromMessage("Our " + product_name + " does not have any " + attribute + ".");
+
     let results = products.map(product => product[attribute]);
     results = Array.from(new Set(results)).filter(v => v !== null);
+    
+    if (Array.isArray(results[0])) {
+        results = results[0];
+        return generateResponseFromMessage("The " + attribute + " in our " + product_name + " are " + results);
+    }
 
     if (results.length === 0) {
         return generateResponseFromMessage("Our " + product_name + " does not have any " + attribute + ".");
@@ -812,7 +819,7 @@ async function generateProductTypeEnquiryResponse(product_type, attribute) {
 async function generateDeliveryEnquiryResponse(sender_psid, entities = {}, order_number = null) {
 
     if (entities["status_order"]) {
-        // TODO: Order status
+        // Order status
         let user = await checkUser(sender_psid);
         let orders = (await getAllOrders(user)).reverse();
 
@@ -843,9 +850,9 @@ async function generateDeliveryEnquiryResponse(sender_psid, entities = {}, order
     }
     
     if (entities["estimated_arrival"]) {
-        // TODO: Order estimated arrival
+        // Order estimated arrival
         if (!order_number) {
-            // TODO: Order status
+            // Order status
             let user = await checkUser(sender_psid);
             let orders = (await getAllOrders(user)).reverse();
 
