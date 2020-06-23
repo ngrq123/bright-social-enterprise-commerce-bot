@@ -5,7 +5,7 @@ import { getAllProducts, getProductsByType, getProductByID, getProductPrice, get
 import { checkUser, createUser } from '../../models/User';
 import { getName } from '../../helpers/fbhelper';
 import { checkCart, addItemToCart, createCart, removeItemFromCart, removeAllItemsFromCart, deleteCart } from '../../models/Cart';
-import { createOrder, getOrder, getAllOrders } from '../../models/Order';
+import { createOrder, getOrder } from '../../models/Order';
 
 let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
@@ -143,25 +143,21 @@ async function handlePostback(sender_psid, received_postback) {
     } else if (postback_intent === "cart_remove") {
         response = await generateRemoveCartResponse(sender_psid, postback_content);
     } else if (postback_intent === "enquiry_delivery") {
-        response = await generateDeliveryEnquiryResponse(sender_psid);
-    } else if (postback_intent === "enquiry_delivery_status_order") {
-        response = await generateDeliveryEnquiryResponse(sender_psid, {status_order: true}, postback_content);
-    } else if (postback_intent === "enquiry_delivery_estimated_arrival") {
-        response = await generateDeliveryEnquiryResponse(sender_psid, {estimated_arrival: true}, postback_content);
+        response = generateDeliveryEnquiryResponse(sender_psid);
     } else if (postback_intent === "enquiry_product") {
         postback_content = (payload.indexOf(" ") === -1) ? "products": postback_content;
         response = generateResponseFromMessage(
             `What would you like to know about our ${postback_content}?`
         );
     } else if (postback_intent === "enquiry_product_attribute") {
-        let attribute = postback_content.substring(0, postback_content.indexOf(" "));
+        let attribute = postback_content.substring(0, postback_content.indexOf(" ") + 1);
         let product = postback_content.substring(
             postback_content.indexOf(" ") + 1,
             postback_content.length
         );
         response = await generateProductEnquiryResponse(product, attribute);
     } else if (postback_intent === "checkout") {
-        response = await generateCheckoutResponse(sender_psid);
+        response = generateCheckoutResponse();
     } else if (postback_intent === "paid") {
         response = await generatePaymentResponse(sender_psid);
     } else if (postback_intent === "receipt_view") {
@@ -263,7 +259,7 @@ async function processMessage(sender_psid, message) {
                         let product = entities["product"][0]["value"];
                         let attribute = entities["product_attribute"][0]["value"];
                         // Handle product enquiry
-                        response = await generateProductEnquiryResponse(product, attribute);
+                        response = generateProductEnquiryResponse(product, attribute);
                     } else if (entities["product_type"] && entities["product_attribute"]) {
                         // Handle product type enquiry with attribute
                         let product_type = entities["product_type"][0]["value"];
@@ -296,7 +292,7 @@ async function processMessage(sender_psid, message) {
                         }
                     });
                 } else if (intent_subcategory === "delivery") {
-                    response = await generateDeliveryEnquiryResponse(sender_psid, entities);
+                    response = generateDeliveryEnquiryResponse(sender_psid, entities);
                 } else if (intent_subcategory === "order") {
                     // Handle order enquiry
                 }
@@ -334,7 +330,7 @@ async function processMessage(sender_psid, message) {
                 break;
 
             case "checkout":
-                response = await generateCheckoutResponse(sender_psid);
+                response = generateCheckoutResponse();
                 break;
 
             default:
@@ -546,16 +542,7 @@ async function generateViewCartResponse(sender_psid) {
     let cart = await checkCart(user.id);
     
     if (!cart || cart.items.length === 0) {
-        return {
-            text: "Your cart is empty.",
-            quick_replies: [
-                {
-                    content_type: "text",
-                    title: "View products",
-                    payload: "recommendation"
-                }
-            ]
-        };
+        return generateResponseFromMessage("Your cart is empty.");
     }
 
     async function getProductsByIds(product_ids, products) {
@@ -647,7 +634,7 @@ async function generateCheckoutResponse(sender_psid) {
             type: "template",
             payload: {
                 template_type: "button",
-                text: `Please proceed to pay by clicking the button below. You have contributed to ${Math.ceil(total_price / 5)} meals for our beneficiaries.`,
+                text: "Please proceed to pay by clicking the button below. You have contributed to (round up price/5) meals for our beneficiaries.",
                 buttons: [
                     {
                         type: "postback",
@@ -672,7 +659,7 @@ async function generatePaymentResponse(sender_psid){
     let order = await createOrder(user);
     
     if (order!=null){
-        await deleteCart(user.id,cart.id);
+        await deleteCart(user.id,cart.uid);
     }
     else{
         return generateResponseFromMessage("An error has occured, please contact our support team.");
@@ -700,6 +687,7 @@ async function generateReceiptResponse(sender_psid,trackingNumber) {
 
     for (var i = 0; i < products.length; i++){
         let prod = products[i];
+        console.log(prod);
         totalItems += prod.quantity;
         totalPrice += parseInt(prod.price) * prod.quantity;
     }
@@ -802,22 +790,19 @@ async function generateProductEnquiryResponse(product_name, attribute) {
 async function generateProductTypeEnquiryResponse(product_type, attribute) {
     // Get product from db, create message and generate response
     let products = await getProductsByType(product_type);
-    products = products.map(p => p.title);
-    products = Array.from(new Set(products));
     return {
         text: `Which product are you enquiring about its ${attribute}?`,
         quick_replies: products.map(product => {
             return {
                 content_type: "text",
-                title: product,
-                payload: `enquiry_product_attribute ${attribute} ${product}`
+                title: product.title,
+                payload: `enquiry_product_attribute ${attribute} ${product.title}`
             }
         })
     };
 }
 
-async function generateDeliveryEnquiryResponse(sender_psid, entities = {}, order_number = null) {
-
+function generateDeliveryEnquiryResponse(sender_psid, entities = {}) {
     if (entities["status_order"]) {
         // Order status
         let user = await checkUser(sender_psid);

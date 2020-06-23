@@ -2,14 +2,14 @@ const mongoose = require('mongoose');
 var Float = require('mongoose-float').loadType(mongoose);
 
 const productsSchema = new mongoose.Schema({
-    id: String,
+    pid: String,
     pid: String,
     title: String,
     description: String,
     availability: String,
     inventory: String,
     condition: String,
-    price: String,
+    price: Float,
     link: String,
     image_link: String,
     brand: String,
