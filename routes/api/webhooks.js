@@ -133,11 +133,15 @@ async function handlePostback(sender_psid, received_postback) {
     if (postback_intent === "recommendation") {
         response = await generateRecommendationsResponse([]);
     } else if (postback_intent === "cart_add") {
+        let product_id = postback_content.substring(0, postback_content.indexOf(" "));
+        let quantity = parseInt(postback_content.substring(postback_content.indexOf(" ")))
+        if (quantity.length === 0) quantity = 1;
+
         // Get product
-        let product = await getProductByID(postback_content);
+        let product = await getProductByID(product_id);
 
         // Add to cart
-        response = await generateAddCartResponse(sender_psid, product, 1);
+        response = await generateAddCartResponse(sender_psid, product, quantity);
     } else if (postback_intent === "cart_view") {
         response = await generateViewCartResponse(sender_psid);
     } else if (postback_intent === "cart_remove") {
@@ -340,7 +344,7 @@ async function processMessage(sender_psid, message) {
                             quantity
                         );
                     } else {
-                        response = await generateSelectProductVariationResponse(products);
+                        response = await generateSelectProductVariationResponse(products, quantity);
                     }
                     
                 } else if (intent_subcategory === "view") {
@@ -457,7 +461,7 @@ async function generateRecommendationsResponse(product_types) {
 }
 
 // Response on product variation
-async function generateSelectProductVariationResponse(products) {
+async function generateSelectProductVariationResponse(products, quantity) {
     let product_name = products[0].title;
 
     return {
@@ -470,7 +474,7 @@ async function generateSelectProductVariationResponse(products) {
                     return {
                         type: "postback",
                         title: p.pattern,
-                        payload: `cart_add ${p.pid}`
+                        payload: `cart_add ${p.pid} ${quantity}`
                     }
                 })
             }
