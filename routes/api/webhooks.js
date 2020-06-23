@@ -498,8 +498,11 @@ async function generateAddCartResponse(sender_psid, product, quantity) {
 
     if (!cart) return generateResponseFromMessage("Failed to update cart");
 
+    let text = `Added ${quantity} ${product.title} to cart.`;
+    if (product.pattern) text = `Added ${quantity} ${product.title} (${product.pattern}) to cart.`;
+
     return {
-        text: `Added ${quantity} ${product.title} to cart.`,
+        text: text,
         quick_replies: [
             {
                 content_type: "text",
