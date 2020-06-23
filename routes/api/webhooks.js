@@ -5,7 +5,7 @@ import { getAllProducts, getProductsByType, getProductByID, getProductPrice, get
 import { checkUser, createUser } from '../../models/User';
 import { getName } from '../../helpers/fbhelper';
 import { checkCart, addItemToCart, createCart, removeItemFromCart, removeAllItemsFromCart, deleteCart } from '../../models/Cart';
-import { createOrder, getOrder } from '../../models/Order';
+import { createOrder, getOrder, getAllOrders } from '../../models/Order';
 
 let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
@@ -144,13 +144,17 @@ async function handlePostback(sender_psid, received_postback) {
         response = await generateRemoveCartResponse(sender_psid, postback_content);
     } else if (postback_intent === "enquiry_delivery") {
         response = await generateDeliveryEnquiryResponse(sender_psid);
+    } else if (postback_intent === "enquiry_delivery_status_order") {
+        response = await generateDeliveryEnquiryResponse(sender_psid, {status_order: true}, postback_content);
+    } else if (postback_intent === "enquiry_delivery_estimated_arrival") {
+        response = await generateDeliveryEnquiryResponse(sender_psid, {estimated_arrival: true}, postback_content);
     } else if (postback_intent === "enquiry_product") {
         postback_content = (payload.indexOf(" ") === -1) ? "products": postback_content;
         response = generateResponseFromMessage(
             `What would you like to know about our ${postback_content}?`
         );
     } else if (postback_intent === "enquiry_product_attribute") {
-        let attribute = postback_content.substring(0, postback_content.indexOf(" ") + 1);
+        let attribute = postback_content.substring(0, postback_content.indexOf(" "));
         let product = postback_content.substring(
             postback_content.indexOf(" ") + 1,
             postback_content.length
@@ -259,7 +263,7 @@ async function processMessage(sender_psid, message) {
                         let product = entities["product"][0]["value"];
                         let attribute = entities["product_attribute"][0]["value"];
                         // Handle product enquiry
-                        response = generateProductEnquiryResponse(product, attribute);
+                        response = await generateProductEnquiryResponse(product, attribute);
                     } else if (entities["product_type"] && entities["product_attribute"]) {
                         // Handle product type enquiry with attribute
                         let product_type = entities["product_type"][0]["value"];
@@ -415,7 +419,7 @@ async function generateRecommendationsResponse(product_types) {
                     return {
                         title: product["title"],
                         // Recommend random variation
-                        subtitle: (product.pattern) ? `(${product["pattern"]}) $${product["price"]}` : `$${product["price"]}`,
+                        subtitle: (product.pattern) ? `(${product["pattern"]}) $${product["price"].toFixed(2)}` : `$${product["price"].toFixed(2)}`,
                         image_url: product["image_link"],
                         buttons: [
                             {
@@ -503,9 +507,17 @@ async function generateRemoveCartResponse(sender_psid, product_id) {
     let cart = await checkCart(user.id);
     let product = await getProductByID(product_id);
 
-    let text = `Removed all ${product.title} from cart.`;
     if (!cart) {
-        text = "Your cart is empty.";
+        return {
+            text: "Your cart is empty.",
+            quick_replies: [
+                {
+                    content_type: "text",
+                    title: "View products",
+                    payload: "recommendation"
+                }
+            ]
+        };
     } else {
         console.log("Update cart " + cart.uid);
         cart = await removeItemFromCart(cart.uid, product.pid);
@@ -514,7 +526,7 @@ async function generateRemoveCartResponse(sender_psid, product_id) {
     }
 
     return {
-        text: text,
+        text: `Removed all ${product.title} from cart.`,
         quick_replies: [
             {
                 content_type: "text",
@@ -564,7 +576,7 @@ async function generateViewCartResponse(sender_psid) {
                 elements: products.map((product, idx) => {
                     return {
                         title: product["title"],
-                        subtitle: (product.pattern) ? `${product.pattern}, Qty: ${cart.items[idx].quantity} ($${product["price"]} each)` : `Qty: ${cart.items[idx].quantity} ($${product["price"]} each)`,
+                        subtitle: (product.pattern) ? `${product.pattern}, Qty: ${cart.items[idx].quantity} ($${product["price"].toFixed(2)} each)` : `Qty: ${cart.items[idx].quantity} ($${product["price"].toFixed(2)} each)`,
                         image_url: product["image_link"],
                         buttons: [
                             {
@@ -634,7 +646,7 @@ async function generateCheckoutResponse(sender_psid) {
             type: "template",
             payload: {
                 template_type: "button",
-                text: "Please proceed to pay by clicking the button below. You have contributed to (round up price/5) meals for our beneficiaries.",
+                text: `Please proceed to pay by clicking the button below. You have contributed to ${Math.ceil(total_price / 5)} meals for our beneficiaries.`,
                 buttons: [
                     {
                         type: "postback",
@@ -768,7 +780,7 @@ async function generateProductEnquiryResponse(product_name, attribute) {
     if (!products) return generateResponseFromMessage("Our " + product_name + " does not have any " + attribute + ".");
 
     let results = products.map(product => product[attribute]);
-    results = Array.from(new Set(results)).filter(v => v !== null);
+    results = Array.from(new Set(results)).filter(v => v != null);
     
     if (Array.isArray(results[0])) {
         results = results[0];
@@ -790,19 +802,21 @@ async function generateProductEnquiryResponse(product_name, attribute) {
 async function generateProductTypeEnquiryResponse(product_type, attribute) {
     // Get product from db, create message and generate response
     let products = await getProductsByType(product_type);
+    products = products.map(p => p.title);
+    products = Array.from(new Set(products));
     return {
         text: `Which product are you enquiring about its ${attribute}?`,
         quick_replies: products.map(product => {
             return {
                 content_type: "text",
-                title: product.title,
-                payload: `enquiry_product_attribute ${attribute} ${product.title}`
+                title: product,
+                payload: `enquiry_product_attribute ${attribute} ${product}`
             }
         })
     };
 }
 
-async function generateDeliveryEnquiryResponse(sender_psid, entities = {}) {
+async function generateDeliveryEnquiryResponse(sender_psid, entities = {}, order_number = null) {
     if (entities["status_order"]) {
         // Order status
         let user = await checkUser(sender_psid);
@@ -816,12 +830,15 @@ async function generateDeliveryEnquiryResponse(sender_psid, entities = {}) {
         if (!order_number) order_number = order.trackingNumber;
         let other_orders = orders.filter(order => order.trackingNumber !== order_number);
 
+        // Only show most recent 3 orders due to button template limit
+        if (other_orders.length > 3) other_orders = other_orders.slice(0, 3);
+
         return {
             attachment: {
                 type: "template",
                 payload: {
                     template_type: "button",
-                    text: `Your latest order ${order.trackingNumber} status is: ${order.orderStatus}. Would you like to check another order's status?`,
+                    text: `Your latest order ${order.trackingNumber} status is: ${order.orderStatus}.\n\nWould you like to check another order's status?`,
                     buttons: other_orders.map(order => {
                         return {
                             type: "postback",
@@ -849,7 +866,8 @@ async function generateDeliveryEnquiryResponse(sender_psid, entities = {}) {
                     payload: {
                         template_type: "button",
                         text: `Which order are you enquiring for its estimated arrival?`,
-                        buttons: orders.map(order => {
+                        // Only shows most recent 3 orders due to button template limit
+                        buttons: orders.slice(0, 3).map(order => {
                             return {
                                 type: "postback",
                                 title: order.trackingNumber,
