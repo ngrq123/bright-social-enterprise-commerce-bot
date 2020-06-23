@@ -51,7 +51,7 @@ router.post("/webhook", (req, res) => {
             // Gets the message. entry.messaging is an array, but
             // will only ever contain one message, so we get index 0
             let webhook_event = entry.messaging[0];
-            // console.log(webhook_event);
+            console.log(webhook_event);
 
             // Get the sender PSID
             let sender_psid = webhook_event.sender.id;
@@ -76,6 +76,12 @@ router.post("/webhook", (req, res) => {
 
             } else if (webhook_event.postback) {
                 handlePostback(sender_psid, webhook_event.postback);
+            } else if (webhook_event.optin) {
+                console.log("One time notification token: " + webhook_event.optin.one_time_notif_token);
+                // Sends the response message
+                callSendAPI(sender_psid, generateResponseFromMessage("We will notify you."));
+            } else {
+                console.log(webhook_event);
             }
         });
 
@@ -380,26 +386,37 @@ async function processMessage(sender_psid, message) {
     } else if (is_greeting) {
         // Message has no intent, just greeting
         // Quick replies of chatbot functionalities (recommendations, check order status, product enquiry)
+        // return {
+        //     text: "Hi there! Welcome to Bright. How can I help you?",
+        //     quick_replies: [
+        //         {
+        //             content_type: "text",
+        //             title: "Recommend products",
+        //             payload: "recommendation"
+        //         },
+        //         {
+        //             content_type: "text",
+        //             title: "Check order status",
+        //             payload: "enquiry_delivery"
+        //         },
+        //         {
+        //             content_type: "text",
+        //             title: "Enquire product",
+        //             payload: "enquiry_product"
+        //         }
+        //     ]
+        // };
+
         return {
-            text: "Hi there! Welcome to Bright. How can I help you?",
-            quick_replies: [
-                {
-                    content_type: "text",
-                    title: "Recommend products",
-                    payload: "recommendation"
-                },
-                {
-                    content_type: "text",
-                    title: "Check order status",
-                    payload: "enquiry_delivery"
-                },
-                {
-                    content_type: "text",
-                    title: "Enquire product",
-                    payload: "enquiry_product"
+            "attachment": {
+                "type": "template",
+                "payload": {
+                    "template_type": "one_time_notif_req",
+                    "title":"One time notification",
+                    "payload":"onetimenotification"
                 }
-            ]
-        };
+            }
+        }
     }
 
     // No intent nor greeting
