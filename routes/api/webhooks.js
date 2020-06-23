@@ -674,7 +674,7 @@ async function generateCheckoutResponse(sender_psid) {
             type: "template",
             payload: {
                 template_type: "button",
-                text: `Please proceed to pay by clicking the button below. You have contributed to ${Math.ceil(total_price / 5)} meals for our beneficiaries.`,
+                text: `Your order (including shipping) will be $${(total_price + 5).toFixed(2)}.\n\nYou will be contributing to ${Math.ceil(total_price / 5)} meals for our beneficiaries.`,
                 buttons: [
                     {
                         type: "postback",
@@ -731,33 +731,6 @@ async function generateReceiptResponse(sender_psid,trackingNumber) {
         totalItems += prod.quantity;
         totalPrice += parseInt(prod.price) * prod.quantity;
     }
-    
-    // let products = [
-        // {
-            // id: 1,
-            // name: "Dark Chocolate Oatmeal Cookies",
-            // price: 3.5,
-            // url:
-                // "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            // quantity: 1
-        // },
-        // {
-            // id: 2,
-            // name: "Cranberry Sweetheart Cookies (Eggless)",
-            // price: 3.5,
-            // url:
-                // "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            // quantity: 2
-        // },
-        // {
-            // id: 3,
-            // name: "Earl Grey Sunflower Seeds Cookies",
-            // price: 3.5,
-            // url:
-                // "https://static.wixstatic.com/media/768979_3fccb2bb837a44caa80bb4fc5dddd119~mv2_d_1800_1800_s_2.jpg",
-            // quantity: 1
-        // }
-    // ];
 
     let response = {
         attachment: {
