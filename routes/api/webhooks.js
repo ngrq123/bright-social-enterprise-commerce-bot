@@ -175,7 +175,7 @@ async function handlePostback(sender_psid, received_postback) {
     } else if (postback_intent === "paid") {
         response = await generatePaymentResponse(sender_psid);
     } else if (postback_intent === "receipt_view") {
-        response = await generateReceiptResponse(sender_psid);
+        response = await generateReceiptResponse(sender_psid, postback_content);
     }
 
     if (response == null) {
@@ -360,6 +360,11 @@ async function processMessage(sender_psid, message) {
 
             case "checkout":
                 response = await generateCheckoutResponse(sender_psid);
+                break;
+            
+            case "receipt":
+                // Get latest order
+                response = await generateSelectReceiptResponse(sender_psid);
                 break;
 
             case "thanking":
@@ -586,7 +591,16 @@ async function generateViewCartResponse(sender_psid) {
     let cart = await checkCart(user.id);
     
     if (!cart || cart.items.length === 0) {
-        return generateResponseFromMessage("Your cart is empty.");
+        return {
+            text: "Your cart is empty.",
+            quick_replies: [
+                {
+                    content_type: "text",
+                    title: "View products",
+                    payload: "recommendation"
+                }
+            ]
+        };
     }
 
     async function getProductsByIds(product_ids, products) {
@@ -697,7 +711,16 @@ async function generatePaymentResponse(sender_psid){
     let cart = await checkCart(user.id);
 
     if (!cart || cart.items.length === 0) {
-        return generateResponseFromMessage("Your cart is empty.");
+        return {
+            text: "Your cart is empty.",
+            quick_replies: [
+                {
+                    content_type: "text",
+                    title: "View products",
+                    payload: "recommendation"
+                }
+            ]
+        };
     }    
     
     let order = await createOrder(user);
@@ -712,7 +735,38 @@ async function generatePaymentResponse(sender_psid){
     return await generateReceiptResponse(sender_psid,order.trackingNumber);
 }
 
-// Response on receipt template for latest confirmed order
+async function generateSelectReceiptResponse(sender_psid) {
+    let user = await checkUser(sender_psid);
+    let orders = (await getAllOrders(user)).reverse();
+
+    if (!orders || orders.length === 0) {
+        return generateResponseFromMessage("You currently do not any confirmed orders.");
+    }
+
+    if (orders.length === 1) {
+        return generateReceiptResponse(sender_psid, orders[0].trackingNumber);
+    }
+
+    return {
+        attachment: {
+            type: "template",
+            payload: {
+                template_type: "button",
+                text: `Which order do you want the receipt for?`,
+                // Only shows most recent 3 orders due to button template limit
+                buttons: orders.slice(0, 3).map(order => {
+                    return {
+                        type: "postback",
+                        title: "Order " + order.trackingNumber.substring(0, order.trackingNumber.indexOf("-")),
+                        payload: `receipt_view ${order.trackingNumber}`
+                    }
+                })
+            }
+        }
+    };
+}
+
+// Response on receipt template for confirmed order
 async function generateReceiptResponse(sender_psid,trackingNumber) {
     // Get user's name
     let user = await checkUser(sender_psid);
@@ -839,6 +893,10 @@ async function generateDeliveryEnquiryResponse(sender_psid, entities = {}, order
 
         // Only show most recent 3 orders due to button template limit
         if (other_orders.length > 3) other_orders = other_orders.slice(0, 3);
+
+        if (other_orders.length === 0) {
+            return generateResponseFromMessage(`Your order ${order.trackingNumber.substring(0, order.trackingNumber.indexOf("-"))} status is: ${order.orderStatus}.`);
+        }
 
         return {
             attachment: {
