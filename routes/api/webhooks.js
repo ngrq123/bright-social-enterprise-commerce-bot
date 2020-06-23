@@ -899,7 +899,7 @@ async function generateDeliveryEnquiryResponse(sender_psid, entities = {}, order
     
     if (entities["cost"]) {
         return generateResponseFromMessage(
-            "It is a flat fee of $2 for every order."
+            "It is a flat fee of $5 for every order."
         );
     }
 
