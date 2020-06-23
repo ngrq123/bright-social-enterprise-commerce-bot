@@ -296,7 +296,7 @@ async function processMessage(sender_psid, message) {
                             "All net revenue earned from the sale of our products and services go towards paying a monthly allowance for our clients' work, as well as their lunch expenses while undergoing training.",
                         manufacturer:
                             "We support adults with intellectual disabilities. We started a range of social enterprise projects to provide alternative work engagement for our adult trainees.",
-                        products: "We sell craft and baker goods.\nLike our Facebook page https://www.facebook.com/Bright-Social-Enterprise-113727397029133 to stay updated!",
+                        products: "We sell craft and baker goods.\nLike our Facebook page http://fb.me/brightsocialsg to stay updated!",
                         safety: "Our cookies are made by our clients in a clean and sanitised environment. The cookies are safe to consume before the expiry date that is printed on the packaging."
                     };
                     // Loop through message keys (entity) and find if entity is in entities
@@ -368,7 +368,7 @@ async function processMessage(sender_psid, message) {
                 break;
 
             case "thanking":
-                response = generateResponseFromMessage("We are glad to have you with us.\n\nLike our Facebook page https://www.facebook.com/Bright-Social-Enterprise-113727397029133 to stay updated, or check our website for volunteering opportunities!");
+                response = generateResponseFromMessage("We are glad to have you with us.\n\nLike our Facebook page http://fb.me/brightsocialsg to stay updated, or check our website for volunteering opportunities!");
                 break;
 
             default:
