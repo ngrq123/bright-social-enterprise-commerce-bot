@@ -39,11 +39,11 @@ app.use(require('./routes'));
 
 // Sets server port and logs message on success
 
-var server = app.listen( process.env.PORT || 3000, function(){
-// var server = https.createServer({
-  // key: fs.readFileSync('../server.key'),
-  // cert: fs.readFileSync('../server.cert')
-// }, app).listen(process.env.PORT || 3000, function () {
+//var server = app.listen( process.env.PORT || 3000, function(){
+var server = https.createServer({
+  key: fs.readFileSync('../server.key'),
+  cert: fs.readFileSync('../server.cert')
+}, app).listen(process.env.PORT || 3000, function () {
   console.log('Webhooks istening on port ' + server.address().port);
 });
 
