@@ -838,11 +838,11 @@ async function generateDeliveryEnquiryResponse(sender_psid, entities = {}, order
                 type: "template",
                 payload: {
                     template_type: "button",
-                    text: `Your latest order ${order.trackingNumber} status is: ${order.orderStatus}.\n\nWould you like to check another order's status?`,
+                    text: `Your latest order ${order.trackingNumber.substring(0, order.trackingNumber.indexOf("-"))} status is: ${order.orderStatus}.\n\nWould you like to check another order's status?`,
                     buttons: other_orders.map(order => {
                         return {
                             type: "postback",
-                            title: order.trackingNumber,
+                            title: "Order " + order.trackingNumber.substring(0, order.trackingNumber.indexOf("-")),
                             payload: `enquiry_delivery_status_order ${order.trackingNumber}`
                         }
                     })
@@ -870,7 +870,7 @@ async function generateDeliveryEnquiryResponse(sender_psid, entities = {}, order
                         buttons: orders.slice(0, 3).map(order => {
                             return {
                                 type: "postback",
-                                title: order.trackingNumber,
+                                title: "Order " + order.trackingNumber.substring(0, order.trackingNumber.indexOf("-")),
                                 payload: `enquiry_delivery_estimated_arrival ${order.trackingNumber}`
                             }
                         })
