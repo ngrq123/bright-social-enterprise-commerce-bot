@@ -299,6 +299,21 @@ async function processMessage(sender_psid, message) {
                     response = await generateDeliveryEnquiryResponse(sender_psid, entities);
                 } else if (intent_subcategory === "order") {
                     // Handle order enquiry
+                    return {
+                        text: "Hi there! You can populate your cart under view products or by sending us a message. Once you have added the products to cart, you can checkout and proceed to payment.",
+                        quick_replies: [
+                            {
+                                content_type: "text",
+                                title: "Recommend products",
+                                payload: "recommendation"
+                            },
+                            {
+                                content_type: "text",
+                                title: "View cart",
+                                payload: "cart_view"
+                            }
+                        ]
+                    };
                 }
                 break;
 
