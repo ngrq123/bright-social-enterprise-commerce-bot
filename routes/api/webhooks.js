@@ -850,6 +850,7 @@ async function generateProductEnquiryResponse(product_name, attribute) {
     let results = products.map(product => product[attribute]);
     results = Array.from(new Set(results)).filter(v => v != null);
 
+    if (attribute === "price") results = results.map(r => `$${r.toFixed(2)}`);
     let parseResults = (r) => r.slice(0, r.length-1).join(", ") + " and " + r[r.length-1];
     
     if (Array.isArray(results[0])) {
