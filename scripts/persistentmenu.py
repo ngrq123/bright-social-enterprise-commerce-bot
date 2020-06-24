@@ -8,12 +8,13 @@ import json
 
 import requests
 
-env_path = Path('.') / '.env'
+env_path = Path('../') / '.env'
 load_dotenv(dotenv_path=env_path)
 
 mongo_pw = os.getenv('DB_PASSWORD')
 page_access_token = os.getenv('PAGE_ACCESS_TOKEN')
-uri = "https://graph.facebook.com/v7.0/me/custom_user_settings?access_token=" + page_access_token
+uri = "https://graph.facebook.com/v7.0/me/messenger_profile?access_token=" + page_access_token
+uri_two = "https://graph.facebook.com/v7.0/me/messenger_profile?fields=persistent_menu&access_token=" + page_access_token
 headers = {"Content-Type":"application/json"}
 
 client = MongoClient('mongodb+srv://mongoadmin:' + mongo_pw + '@fb-hack-chatbot-cevnk.mongodb.net/fbmsg', connect=False)
@@ -28,33 +29,22 @@ def get_persistent_menu_content(db):
 
 # This is to perform post request with facebook API to set the persistent menu for each user
 def submit_persistent_menus(persistentmenus):
+
     persist_menu = {"locale": "default",
             "composer_input_disabled": False,
             "call_to_actions":persistentmenus}
-    user_collection = db.users
+    payload = {"persistent_menu": [persist_menu]}
 
-    all_users = user_collection.find({},{'_id':0,'id':1})
+    resp = requests.post(uri, json=payload, headers=headers)
 
-    # Pull each user psid out to manually send request to set menu for them
-    for user in all_users:
-        page_id = user["id"]
-        payload = {
-            "psid": page_id,
-            "persistent_menu":[persist_menu]
-            }
+    print(resp.text)
 
-        json_data = json.dumps(payload)
-
-        resp = requests.post(uri, json=json_data, headers=headers)
-
-        print(resp.text)
-
-# def get_persistent_menu():
-#     resp = requests.get(uri_two,headers)
-#     print(resp.text)
+def get_persistent_menu():
+    resp = requests.get(uri_two,headers)
+    print(resp.text)
 
 persistentmenus = get_persistent_menu_content(db)
 submit_persistent_menus(persistentmenus)
-#get_ice_breakers()
+get_persistent_menu()
 
 

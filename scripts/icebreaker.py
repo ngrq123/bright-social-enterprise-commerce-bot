@@ -7,7 +7,7 @@ from pathlib import Path
 
 import requests
 
-env_path = Path('.') / '.env'
+env_path = Path('../') / '.env'
 load_dotenv(dotenv_path=env_path)
 
 mongo_pw = os.getenv('DB_PASSWORD')
@@ -40,6 +40,6 @@ def get_ice_breakers():
 
 icebreakers = get_ice_breaker_content(db)
 submit_ice_breakers(icebreakers)
-#get_ice_breakers()
+get_ice_breakers()
 
 
