@@ -1,7 +1,5 @@
 # Bright: Social Enterprise Commerce Bot
 
-Video Link: [https://youtu.be/MO_p3ylFNxU](https://youtu.be/MO_p3ylFNxU)
-
 **Video Link: [https://youtu.be/MO_p3ylFNxU](https://youtu.be/MO_p3ylFNxU)**
 
 ## Inspiration
@@ -67,8 +65,8 @@ With 2 weeks to develop our prototype, we outlined our steps and set a timeline 
 5. Automate Customer Service: Order Enquiry
    - Populate database with order information
    - Implement shipping and delivery Q&A
-6. Automate Customer Service: Payment
-   - Populate database (MongoDB) with payment information
+6. Automate Customer Service: Checkout
+   - Populate database (MongoDB) with order information
    - Implement in chat bot
 7. Social impact notification upon checkout
 8. QA and Iterate
@@ -76,15 +74,18 @@ With 2 weeks to develop our prototype, we outlined our steps and set a timeline 
 ## Challenges that we ran into
 
 - Copious amounts of data is required in order for Wit.ai natural language processing model to correctly identify the message’s intent, entities and traits
-- We integrated with Facebook Shop page to automatically store users’ conversations to our Wit.ai app to validate, tag and train the model for better precision and recall
+  - We integrated with Facebook Shop page to automatically store users’ conversations to our Wit.ai app to validate, tag and train the model for better precision and recall
 - Difficulty in accessing Facebook’s Marketing API when we attempt to add additional labels to product listings which also requires knowledge of the Graph API
-- As our app was in development mode, we were not able to gain public page content access: we had to migrate our data to an external database
-- We were unable to utilise this in development mode due to public page content access, and have to migrate all data to the database
+  - As our app was in development mode, we were not able to gain public page content access. Hence, we had to migrate our data to an external database
 - Integration with MongoDB as a business database
-- We had to understand how to manage synchronous and asynchronous functions to deliver dynamic responses to the user
+  - We had to understand how to manage synchronous and asynchronous functions to deliver dynamic responses to the user
 - Implementing the end-to-end interactions between the user and backend server
-- As every component is linked from interactions with users to shopping cart and order management, we had to ensure that each component integrates well with each other
-- We had to do heavy regression testing on our app to check and fix code issues when new features affected our previously implemented features
+  - As every component is linked from interactions with users to shopping cart and order management, we had to ensure that each component integrates well with each other
+  - We had to do heavy regression testing on our app to check and fix code issues when new features affected our previously implemented features.
+- Application Security
+  - We had to ensure that important keys and data are not being hard-coded as strings in our application
+  - Implementation of https for secure usage of the webhook, also to allow us to comply with the OAuth2 regulations of using Facebook’s API
+
 
 ## Accomplishments that we are proud of
 
