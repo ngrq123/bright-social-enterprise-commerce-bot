@@ -176,6 +176,15 @@ async function handlePostback(sender_psid, received_postback) {
         response = await generatePaymentResponse(sender_psid);
     } else if (postback_intent === "receipt_view") {
         response = await generateReceiptResponse(sender_psid, postback_content);
+    } else if (postback_intent === "enquiry_general_organisation") {
+        response = generateResponseFromMessage("Bright is a social enterprise where we provide vocational training to adults with intellectual disabilities.\n\n" +
+        "We started a range of social enterprise projects to provide alternative work engagement opportunities for our adult trainees. " + 
+        "Some of the projects began as therapy programmes which encourage the development of fine motor skills; others provide a realistic vocational training environment.\n\n" +
+        "All net revenue earned from the sale of our products and services go towards paying a monthly allowance for our clients' work, as well as their lunch expenses while undergoing training.");
+    } else if (postback_intent === "enquiry_general_profit") {
+        response = generateResponseFromMessage("All net revenue earned from the sale of our products and services go towards paying a monthly allowance for our clients' work, as well as their lunch expenses while undergoing training.");
+    } else if (postback_intent === "thanking") {
+        response = generateResponseFromMessage("We are glad to have you with us.\n\nLike our Facebook page http://fb.me/brightsocialsg to stay updated, or check our website for volunteering opportunities!");
     }
 
     if (response == null) {
