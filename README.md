@@ -86,9 +86,9 @@ With 2 weeks to develop our prototype, we outlined our steps and set a timeline 
   - We had to ensure that important keys and data are not being hard-coded as strings in our application
   - Implementation of https for secure usage of the webhook, also to allow us to comply with the OAuth2 regulations of using Facebook’s API
 
-
 ## Accomplishments that we are proud of
 
+- Having ice breakers and a persistent menu to lower the barrier to entry for new and existing users
 - Our considerations of what the market needs and thinking through the users’ underlying pain points
 - Planning, managing and navigating the flow of the dialogue with different message intents made possible with natural language processing
 - Building a chatbot that does not consist of only if-else decisions, we managed to have great interactions with the backend database for the order management and product recommendation feature
@@ -119,10 +119,11 @@ With 2 weeks to develop our prototype, we outlined our steps and set a timeline 
 - Glitch
 - AWS EC2
 - MongoDB on mLab
+- Python
 
 ## GitHub Repository
 
-[https://github.com/ngrq123/fb-messenger-hackathon](https://github.com/ngrq123/fb-messenger-hackathon)
+[https://github.com/ngrq123/bright-social-enterprise-commerce-bot](https://github.com/ngrq123/bright-social-enterprise-commerce-bot)
 
 ## Installation
 
